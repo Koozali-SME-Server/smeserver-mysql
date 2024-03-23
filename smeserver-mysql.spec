@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 1
+%define release 2
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -15,11 +15,11 @@ Requires: mariadb-server
 # mariadb after 5.5 /in Centos 8 will package mysql_upgrade in mariadb-server-utils
 # Requires: /usr/bin/mysql_upgrade
 Requires: mariadb
-Requires: e-smith-base
-Requires: e-smith-lib >= 1.15.1-19
+Requires: smeserver-base
+Requires: smeserver-lib >= 1.15.1-19
 Provides: e-smith-mysql = 2.7.0
 Obsoletes: e-smith-mysql < 2.7.0
-BuildRequires: e-smith-devtools >= 1.13.1-03
+BuildRequires: smeserver-devtools >= 1.13.1-03
 AutoReqProv: no
 
 %description
@@ -343,6 +343,9 @@ Koozali SME Server configuration package for mariadb105 RH SCLo
 
 
 %changelog
+* Sat Mar 23 2024 Brian Read <brianr@koozali.org>11.0.0-2.sme
+- Change Requires: e-smith- to Requires:smeserver-
+
 * Sat Mar 23 2024 Brian Read <brianr@koozali.org>11.0.0-1.sme
 - Update Release and Version to base version and 1st release for SME11 [SME: 12518]
 
