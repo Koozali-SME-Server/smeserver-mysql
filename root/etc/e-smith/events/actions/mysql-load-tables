@@ -1,0 +1,17 @@
+#!/bin/sh
+
+status=$(/sbin/e-smith/config getprop mariadb status)
+if [ "$status" = "disabled" ]
+then
+    echo "mysqld is disabled - no tables restored" >&2
+    exit 0
+fi
+/bin/rm -f /home/e-smith/db/mysql/information_schema.dump
+/bin/rm -f /home/e-smith/db/mysql/performance_schema.dump
+if [ ! -f /var/lib/mysql/mysql/user.frm ]
+then
+    for db in $(ls /home/e-smith/db/mysql/*.dump 2> /dev/null | grep -v '/mysql.dump')
+    do
+        mv $db /etc/e-smith/sql/init/01_$(basename $db .dump).sql
+    done
+fi

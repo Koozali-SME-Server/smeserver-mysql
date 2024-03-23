@@ -1,0 +1,1176 @@
+Summary: Koozali SME Server specific mysql configuration and templates.
+%define name smeserver-mysql
+Name: %{name}
+%define version 2.7.0
+%define release 19
+Version: %{version}
+Release: %{release}%{?dist}
+License: GPL
+Group: Networking/Daemons
+Source: %{name}-%{version}.tar.xz
+
+BuildRoot: /var/tmp/%{name}-%{version}-%{release}-buildroot
+BuildArchitectures: noarch
+Requires: mariadb-server
+# mariadb after 5.5 /in Centos 8 will package mysql_upgrade in mariadb-server-utils
+# Requires: /usr/bin/mysql_upgrade
+Requires: mariadb
+Requires: e-smith-base
+Requires: e-smith-lib >= 1.15.1-19
+Provides: e-smith-mysql = 2.7.0
+Obsoletes: e-smith-mysql < 2.7.0
+BuildRequires: e-smith-devtools >= 1.13.1-03
+AutoReqProv: no
+
+%description
+This package adds necessary startup and configuration items for
+mysql.
+
+
+%prep
+%setup
+
+%build
+for ver in  101 102 103 105
+do
+mkdir root$ver
+done
+perl createlinks
+
+#########################################
+# full job to create all needed version
+#########################################
+declare -A versions=([101]="10.1" [102]="10.2" [103]="10.3" [105]="10.5")
+declare -A ports=([101]="3310" [102]="3311" [103]="3312" [105]="3313")
+
+for ver in  101 102 103 105
+do
+##TODO seen those 
+
+# default values from /etc/opt/rh/rh-mariadb101/my.cnf.d/mariadb-server.cnf
+basedir="/opt/rh/rh-mariadb$ver/root/usr"
+datadir="/var/opt/rh/rh-mariadb$ver/lib/mysql"
+socket="/var/lib/mysql/mariadb$ver.sock"
+logerror="/var//log/mariadb$ver/mariadb.log"
+#"/var/opt/rh/rh-mariadb$ver/log/mariadb/mariadb.log"
+pidfile="/var/run/rh-mariadb$ver-mariadb/mariadb.pid"
+vers="${versions[$ver]}"
+port="${ports[$ver]}"
+
+# we could choose to override /etc/opt/rh/rh-mariadb101/my.cnf or to force to share /etc/mariadb.log
+
+##Folders
+mkdir -p root$ver/etc/e-smith/sql/init$ver
+mkdir -p root$ver/home/e-smith/db/mariadb$ver
+mkdir -p root$ver/var/log/mariadb$ver
+#mkdir -p root$ver/home/e-smith/db/mysql/mariadb$ver
+mkdir -p root$ver/etc/e-smith/events/actions
+
+# create configuration db default
+#rm -rf etc/e-smith/db/configuration
+mkdir -p root$ver/etc/e-smith/db/configuration/{defaults/mariadb$ver-mariadb,defaults/mariadb$ver-mysql.init,migrate}
+echo "yes" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mariadb/LocalNetworkingOnly
+echo "enabled" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mariadb/status
+echo "service" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mariadb/type
+echo "enabled" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mysql.init/status
+echo "service" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mysql.init/type
+
+# create templates.metadata
+## for /etc/e-smith/templates/etc/my.cnf/ => /etc/opt/rh/rh-mariadb$ver/my.cnf 
+mkdir -p root$ver/etc/e-smith/templates.metadata/etc/opt/rh/rh-mariadb$ver
+echo 'TEMPLATE_PATH="/etc/my.cnf"' > root$ver/etc/e-smith/templates.metadata/etc/opt/rh/rh-mariadb$ver/my.cnf
+
+# rename/move files
+
+#TODO /etc/e-smith/events
+mv root/etc/e-smith/events/smeserver-mariadb$ver-update root$ver/etc/e-smith/events/
+#bootstrap-console-save templates + actions
+mkdir -p root$ver/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/e-smith/sql/
+mkdir -p root$ver/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/opt/rh
+mv root/etc/e-smith/events/bootstrap-console-save/S40mariadb$ver-load-tables root$ver/etc/e-smith/events/bootstrap-console-save/
+mv root/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/e-smith/sql/init$ver root$ver/etc/e-smith/events/bootstrap-console-save//templates2expand/etc/e-smith/sql/
+mv root/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/opt/rh/rh-mariadb$ver root$ver/etc/e-smith/events/bootstrap-console-save//templates2expand/etc/opt/rh/
+#pre-backup actions
+mkdir -p root$ver/etc/e-smith/events/pre-backup
+mv root/etc/e-smith/events/pre-backup/S*mariadb$ver-* root$ver/etc/e-smith/events/pre-backup/
+#post-backup actions
+mkdir -p root$ver/etc/e-smith/events/post-backup
+mv root/etc/e-smith/events/post-backup/S*mariadb$ver-* root$ver/etc/e-smith/events/post-backup/
+#pre-restore actions + service
+mkdir -p root$ver/etc/e-smith/events/pre-restore
+mv root/etc/e-smith/events/pre-restore/S*mariadb$ver-* root$ver/etc/e-smith/events/pre-restore/
+#timezone-update service
+
+
+#/etc/e-smith/events/actions
+#TODO
+cp rootscl/etc/e-smith/events/actions/mariadb_VER_-delete-db-files root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-db-files
+cp rootscl/etc/e-smith/events/actions/mariadb_VER_-delete-dumped-tables root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-dumped-tables
+cp rootscl/etc/e-smith/events/actions/mariadb_VER_-dump-tables root$ver/etc/e-smith/events/actions/mariadb${ver}-dump-tables
+cp rootscl/etc/e-smith/events/actions/mariadb_VER_-load-tables root$ver/etc/e-smith/events/actions/mariadb${ver}-load-tables
+sed -i root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-db-files \
+	-i root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-dumped-tables \
+	-i root$ver/etc/e-smith/events/actions/mariadb${ver}-dump-tables \
+	-i root$ver/etc/e-smith/events/actions/mariadb${ver}-load-tables \
+	-e "s_!!!VER!!!_${ver}_g" \
+	-e "s_!!!SOCKET!!!_${socket}_g" 
+
+##metadata
+mkdir -p root$ver/etc/e-smith/templates.metadata/etc/e-smith/sql
+cp -a root/etc/e-smith/templates.metadata/etc/e-smith/sql/init root$ver/etc/e-smith/templates.metadata/etc/e-smith/sql/init$ver
+
+
+##templates
+mkdir -p root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver
+cp   root/etc/e-smith/templates/etc/e-smith/sql/init/* root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver
+sed -i root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver/00_restore_dumped_dbs  -i root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver/10mysql_upgrade \
+	-e "s_e-smith/db/mysql_e-smith/db/mariadb${ver}_g" \
+	-e "s_/usr/bin/mysql_/opt/rh/rh-mariadb${ver}/root/usr/bin/mysql_g" \
+	-e "s_mariadb.service_mariadb$ver-mariadb.service_" \
+	-e "s_/var/run/mariadb/mariadb.pid_${pidfile}_g" \
+	-e "s_mysqld_mariadb$ver-mariadb_g" \
+	-e "s_| mysql |_| /opt/rh/rh-mariadb${ver}/root/usr/bin/mysql --socket=$socket |_g" \
+	-e "s_mysql\_upgrade_mysql\_upgrade --socket=$socket _g"
+mkdir -p root$ver/etc/e-smith/templates/etc/my.cnf
+echo "
+[mariadb-$vers]" >  root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-05mariadb
+echo "basedir=$basedir" >  root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-07basedir
+echo "datadir=$datadir" > root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-08datadir
+#cp -a root/etc/e-smith/templates/etc/my.cnf/009socket root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-09socket
+#sed -i root$ver/etc/e-smith/templates/etc/my.cnf/$ver-09socket \
+#	-e "s_mariadb_{'mariadb${ver}\-mariadb'}_" \
+#	-e "s_^socket.*_socket=${socket}_"
+cp rootscl/etc/e-smith/templates/etc/my.conf/_VER_-09socket root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-09socket
+sed -i root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-09socket \
+        -e "s_!!!VER!!!_${ver}_g" \
+        -e "s_!!!PORT!!!_${port}_g"
+cp rootscl/etc/e-smith/templates/etc/my.conf/_VER_-10port root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-10port
+sed -i root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-10port \
+	-e "s_!!!VER!!!_${ver}_g" \
+	-e "s_!!!PORT!!!_${port}_g" 	
+
+cp -a root/etc/e-smith/templates/etc/my.cnf/014server_system_variables root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-14server_system_variables
+sed -i root$ver/etc/e-smith/templates/etc/my.cnf/$ver-14server_system_variables \
+	-e "s_mariadb_mariadb${ver}\-mariadb_"
+cp -a root/etc/e-smith/templates/etc/my.cnf/015logerror root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-15logerror
+sed -i root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-15logerror \
+	-e "s_^log\_error.*_log\_error=${logerror}_"
+
+## /sbin/e-smith
+mkdir -p root$ver/sbin/e-smith/systemd
+#!!!VER!!!
+cp rootscl/sbin/e-smith/systemd/mariadb_VER_-initialize root$ver/sbin/e-smith/systemd/mariadb${ver}-initialize
+cp rootscl/sbin/e-smith/systemd/mariadb_VER_-mysql.init root$ver/sbin/e-smith/systemd/mariadb${ver}-mysql.init
+cp rootscl/sbin/e-smith/mariadb_VER_-preload root$ver/sbin/e-smith/mariadb${ver}-preload
+sed -i root$ver/sbin/e-smith/systemd/mariadb${ver}-initialize -i root$ver/sbin/e-smith/systemd/mariadb${ver}-mysql.init \
+	-i root$ver/sbin/e-smith/mariadb${ver}-preload \
+	-e "s_!!!VER!!!_${ver}_g" \
+	-e "s_!!!SOCKET!!!_${socket}_g"
+if [ $ver -ge  104 ]
+then
+  cp rootscl/sbin/e-smith/systemd/mariadb_VER_-post root$ver/sbin/e-smith/systemd/mariadb${ver}-post
+  sed -i root$ver/sbin/e-smith/systemd/mariadb${ver}-post -e "s_!!!VER!!!_${ver}_g" -e "s_!!!SOCKET!!!_${socket}_g"
+fi
+
+
+## logrotate 
+mkdir -p root$ver/etc/logrotate.d/
+sed rootscl/etc/logrotate.d/mariadb_VER_ -e "s_!!!VER!!!_${ver}_g" \
+	-e "s_!!!SOCKET!!!_${socket}_g" > root$ver/etc/logrotate.d/mariadb${ver}
+
+
+#systemd service
+mkdir -p  root$ver/usr/lib/systemd/system/
+### the upstream  service is called rh-mariadb$ver-mariadb.service
+# we use our own /usr/lib/systemd/system/mariadb$ver-mariadb
+cp rootscl/usr/lib/systemd/system/mariadb_VER_-mariadb.service root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service
+cp rootscl/usr/lib/systemd/system/mariadb_VER_-mysql.init.service root$ver/usr/lib/systemd/system/mariadb${ver}-mysql.init.service
+sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service -i root$ver/usr/lib/systemd/system/mariadb${ver}-mysql.init.service \
+	-e "s_!!!VER!!!_${ver}_g" 
+if [ $ver -ge  102 ]
+then
+  sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service \
+	-e "s/_safe//" \
+	-e "s/^ExecStopPost.*//";
+fi
+if [ $ver -ge  104 ]
+then
+  sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service \
+	-e 's_set.password$_set.password2_' 
+  sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service \
+	 -e "/^#ExecStartPost=/ i ExecStartPost=\/sbin\/e-smith\/systemd\/mariadb${ver}-post"
+
+fi
+
+#### TODO check it is similar to rh one and functional !
+
+#/usr/bin to ease user
+mkdir root$ver/usr/bin
+for i in  mysql mysqlshow mysqladmin mysqldump mysqlimport mysqlbinlog
+do
+  echo "/opt/rh/rh-mariadb${ver}/root/usr/bin/$i --socket=/var/lib/mysql/mariadb${ver}.sock \"\$@\"" >root$ver/usr/bin/$i${ver}
+done
+
+#phpMyAdmin template
+mkdir -p root$ver/etc/e-smith/templates/etc/phpMyAdmin/config.inc.php/
+sed rootscl/etc/e-smith/templates/etc/phpMyAdmin/config.inc.php/11configMysql_VER_  \
+	-e "s_!!!SOCKET!!!_${socket}_g" \
+	-e "s_!!!VER!!!_${ver}_g" > root$ver/etc/e-smith/templates/etc/phpMyAdmin/config.inc.php/11configMysql${ver} 
+
+done
+
+###################################################
+# end of per version generation
+##################################################
+
+
+%install
+rm -rf $RPM_BUILD_ROOT
+(cd root   ; find . -depth -print | cpio -dump $RPM_BUILD_ROOT)
+/sbin/e-smith/genfilelist $RPM_BUILD_ROOT \
+    --file "/sbin/e-smith/systemd/mariadb-initialize" 'attr(0554,root,root)' \
+    --file "/sbin/e-smith/systemd/mysql.init" 'attr(0554,root,root)' \
+    --dir '/home/e-smith/db/mysql' 'attr(0750,root,root)' \
+    --dir "/var/log/mariadb" 'attr(0750,mysql,mysql)' \
+    --dir "/var/log/mysql.init" 'attr(0750,root,root)' \
+    > %{name}-%{version}-filelist
+echo "%doc COPYING"          >> %{name}-%{version}-filelist
+
+for ver in  101 102 103 105
+do
+#rm -rf $RPM_BUILD_ROOT
+(cd root$ver   ; find . -depth -print | cpio -dump $RPM_BUILD_ROOT)
+/sbin/e-smith/genfilelist root$ver/ \
+    --file "/sbin/e-smith/systemd/mariadb$ver-initialize" 'attr(0554,root,root)' \
+    --file "/sbin/e-smith/systemd/mariadb$ver-mysql.init" 'attr(0554,root,root)' \
+    --file "/sbin/e-smith/systemd/mariadb$ver-post" 'attr(0554,root,root)' \
+    --dir "/home/e-smith/db/mariadb$ver" 'attr(0750,root,root)' \
+    --dir "/var/log/mariadb$ver" 'attr(0750,mysql,mysql)' \
+    --file "/usr/bin/mysql$ver" 'attr(0554,root,root)' \
+    --file "/usr/bin/mysqladmin$ver" 'attr(0554,root,root)' \
+    --file "/usr/bin/mysqlbinlog$ver" 'attr(0554,root,root)' \
+    --file "/usr/bin/mysqldump$ver" 'attr(0554,root,root)' \
+    --file "/usr/bin/mysqlimport$ver" 'attr(0554,root,root)' \
+    --file "/usr/bin/mysqlshow$ver" 'attr(0554,root,root)' \
+| grep -vE '/home/e-smith/db/mysql$' \
+    > %{name}-%{version}-filelist-mariadb$ver
+echo "%doc COPYING"          >> %{name}-%{version}-filelist-mariadb$ver
+done
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%pre
+if [ $1 -gt 1 ] ; then
+  if [ -e /var/service/mariadb/run ] ; then
+        /usr/bin/sv d mariadb
+        /usr/bin/sv d mariadb/log
+  fi
+fi
+
+%post
+
+%postun
+
+%files -f %{name}-%{version}-filelist
+%defattr(-,root,root)
+
+#----------------------------------------------------
+%package        -n smeserver-mariadb101
+Summary:        Koozali SME Server mariadb 10.1
+Group:          Database
+Requires:       rh-mariadb101
+Requires:       rh-mariadb101-mariadb
+Requires:       rh-mariadb101-mariadb-server
+BuildRequires:  e-smith-devtools >= 1.13.1-03
+
+%description    -n smeserver-mariadb101
+Koozali SME Server configuration package for mariadb101 RH SCLo
+
+%files -n smeserver-mariadb101 -f %{name}-%{version}-filelist-mariadb101
+%defattr(-,root,root)
+
+#----------------------------------------------------
+%package        -n smeserver-mariadb102
+Summary:        Koozali SME Server mariadb 10.2
+Group:          Database
+Requires:       rh-mariadb102
+Requires:       rh-mariadb102-mariadb
+Requires:       rh-mariadb102-mariadb-server
+BuildRequires:  e-smith-devtools >= 1.13.1-03
+
+%description    -n smeserver-mariadb102
+Koozali SME Server configuration package for mariadb102 RH SCLo
+
+%files -n smeserver-mariadb102 -f %{name}-%{version}-filelist-mariadb102
+%defattr(-,root,root)
+
+#----------------------------------------------------
+%package        -n smeserver-mariadb103
+Summary:        Koozali SME Server mariadb 10.3
+Group:          Database
+Requires:       rh-mariadb103
+Requires:       rh-mariadb103-mariadb
+Requires:       rh-mariadb103-mariadb-server
+Requires:       rh-mariadb103-mariadb-server-utils
+BuildRequires:  e-smith-devtools >= 1.13.1-03
+
+%description    -n smeserver-mariadb103
+Koozali SME Server configuration package for mariadb103 RH SCLo
+
+%files -n smeserver-mariadb103 -f %{name}-%{version}-filelist-mariadb103
+%defattr(-,root,root)
+
+#----------------------------------------------------
+%package        -n smeserver-mariadb105
+Summary:        Koozali SME Server mariadb 10.5
+Group:          Database
+Requires:       rh-mariadb105
+Requires:       rh-mariadb105-mariadb
+Requires:       rh-mariadb105-mariadb-server
+Requires:       rh-mariadb105-mariadb-server-utils
+BuildRequires:  e-smith-devtools >= 1.13.1-03
+Requires: 	smeserver-mysql >= 2.7.0-5
+%description    -n smeserver-mariadb105
+Koozali SME Server configuration package for mariadb105 RH SCLo
+
+%files -n smeserver-mariadb105 -f %{name}-%{version}-filelist-mariadb105
+%defattr(-,root,root)
+
+
+#----------------------------------------------------
+
+
+%changelog
+* Sat Mar 23 2024 cvs2git.sh aka Brian Read <brianr@koozali.org> 2.7.0-19.sme
+- Roll up patches and move to git repo [SME: 12338]
+
+* Sat Mar 23 2024 BogusDateBot
+- Eliminated rpmbuild "bogus date" warnings due to inconsistent weekday,
+  by assuming the date is correct and changing the weekday.
+
+* Thu Nov 23 2023 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-18.sme
+- fix OpenFilesLimit too low preventing backup [SME: 12417]
+- deleting extra folder in /home/e-smith/db/mysql/ for mariadb10*
+
+* Sun Dec 11 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-17.sme
+- fix mariadb overriding skip-networking for other versions  [SME: 12262]
+
+* Mon Jul 11 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-16.sme
+- use dedicated log file for *mysql.init [SME: 11953]
+
+* Tue Jun 07 2022 John Crisp <jcrisp@safeandsoundit.co.uk> 2.7.0-15.sme
+- Fix init for MariaDB 104+ [SME:11991]
+
+* Sun Apr 10 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-14.sme
+- /usr/libexec/mysql-wait-stop not used after mariadb101 [SME: 11936]
+
+* Sat Apr 09 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-13.sme
+- fix few typos [SME: 11936]
+
+* Sat Apr 02 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-12.sme
+- remove SourcePath from mysql-init service file [SME: 11922]
+
+* Wed Mar 16 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-11.sme
+- fix mariadb*-mysql.init path in service file [SME: 11899]
+
+* Wed Mar 16 2022 Jean-Philipe Pialasse <tests@pialasse.com> 2.7.0-10.sme
+- fix sclo metadata path for sql/init templated scripts [SME: 11899]
+
+* Wed Mar 16 2022 Jean-Philipe Pialasse <tests@pialasse.com> 2.7.0-8.sme
+- missing sockets for backup of db [SME: 11899]
+
+* Mon Mar 14 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-7.sme
+- adding requirement for mariadb-server-utils (105 and 103) [SME: 11899]
+
+* Mon Mar 14 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-6.sme
+- fix password for mariadb 105 [SME: 11899]
+
+* Sun Mar 13 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-5.sme
+- fix typo in socket, seen with phpmyadmin [SME: 11899]
+- fix permissions for mariadb105 [SME: 11899]
+  create a dedicated set.password for mariadb>103
+
+* Sun Mar 13 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-3.sme
+- missing phpMyAdmin fragments [SME: 11899]
+
+* Sun Mar 13 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-2.sme
+- fix few sclo issues [SME: 11899]
+  missing +x for binaries shortcut
+  mariadb105 passwordless root access
+  mysqld_safe-scl-helper vs mysqld-scl-helper
+
+* Fri Mar 11 2022 Jean-Philippe Pialasse <tests@pialasse.com> 2.7.0-1.sme
+- prepare spec for multiple version support [SME: 11899]
+- package renamed from e-smith-mysql to smeserver-mysql [SME: 11897]
+- remove duplicate logrotate and remove unsused template [SME: 11467]
+- move scripts /etc/rc.d/init.d/mysql-init to /sbin/e-smith/systemd [SME: 11898]
+- add rh-mariadb101 support [SME: 11901]
+- add rh-mariadb102 support [SME: 11902]
+- add rh-mariadb103 support [SME: 11903]
+- add rh-mariadb105 support [SME: 11904]
+
+* Tue Aug 17 2021 John Crisp <jcrisp@safeandsoundit.co.uk> 2.6.0-22.sme
+- Remove template and set default max_allowed_packet=16M 
+
+* Thu Mar 18 2021 Jean-Philippe Pialasse <tests@pialasse.com> 2.6.0-21.sme
+- fix wrong path for set password [SME: 11468]
+
+* Sat Mar 13 2021 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-20.sme
+- fix restore of sme9 backup fails to start mysql.init [SME: 11453]
+
+* Thu Mar 04 2021 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-19.sme
+- add property to enable  mysqld slow queries log [SME: 455]
+  simply use SlowQueries as the amount of second and it is enabled
+  remove property to stop logging
+- more mysqld/mariadb parameter available with properties /templates  [SME: 4606]
+- ease 4 databit characters with innodb [SME: 11404]
+- redirect mariadb log from systemd to file [SME: 11425]
+
+* Wed Jan 27 2021 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-18.sme
+- fix backup fails in pre-backup in mysqldump [SME: 7827]
+
+* Sun Dec 13 2020 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-17.sme
+- expand 10mysql_upgrade and restart mysql.init on e-smith-mysql-update [SME: 11120]
+  this to make sure mariadb upgrade fully and prevent residual 10mysql_upgrade stay in the way
+
+* Wed Dec 09 2020 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-16.sme
+- fix issue with 10mysql_upgrade crashing mariadb [SME: 11120]
+  also removed noise from spec file
+
+* Mon Dec 07 2020 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-15.sme
+- e-smith-update event [SME: 11145]
+- mariadb systemd integration [SME: 11021]
+  move set.password and template
+  create /usr/lib/systemd/system/mariadb.service.d/sme.conf
+  create /sbin/e-smith/systemd/mariadb-initialize + chmod
+  cleanup and remove old /var/service/mariadb
+- mysql.init systemd integration [SME: 11120]
+  create mysql_init.service
+
+
+* Sun Jul 24 2016 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-13.sme
+- systemd skip redirect [SME: 9688]
+
+* Sat Jul 23 2016 stephane de Labrusse <stephdl@de-labrusse.fr> 2.6.0-12.sme
+- Corrected a typo in e-smith-mysql-2.6.0.bz9671.RemoveDummyMysqlDatabase.patch
+- [SME: 9671]
+
+* Thu Jul 21 2016 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-11.sme
+- fix broken link /etc/init.d/supervise/mariadb [SME: 9686]
+
+* Mon Jul 18 2016 stephane de Labrusse <stephdl@de-labrusse.fr> 2.6.0-10.sme
+- Remove Dummy database from backup and restoration [SME: 9671]
+- Added  e-smith-mysql-2.6.0.bz9671.RemoveDummyMysqlDatabase.patch
+
+* Mon Jul 18 2016 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-8.sme
+- fix forgotten mysqld variables in various scripts [SME: 9438]
+-  e-smith-mysql-2.6.0-mariadb_forgotten_var.patch
+
+* Mon Apr 11 2016 Daniel Berteaud <daniel@firewall-services.com> 2.6.0-7.sme
+- Use default InnoDB settings [SME: 9439]
+
+* Mon Apr 11 2016 Daniel Berteaud <daniel@firewall-services.com> 2.6.0-6.sme
+- Rename mysqld to mariadb [SME: 9438]
+
+* Mon Apr 11 2016 Daniel Berteaud <daniel@firewall-services.com> 2.6.0-5.sme
+- Remove uneeded scriplets %post and %postun [SME: 9422]
+
+* Thu Mar 31 2016 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-4.sme
+- new path for pid file with mariadb [SME: 9407]
+- my.cnf : Innodb needs to be active for mariadb [SME: 9406]
+
+* Fri Mar 18 2016 Jean-Philipe Pialasse <tests@pialasse.com> 2.6.0-2.sme
+- fix mysql-server not found [SME: 9345]
+- now using mariadb-server and mariadb
+- Eliminated rpmbuild "bogus date" warnings due to inconsistent weekday,
+  by assuming the date is correct and changing the weekday.
+  Wed Mar 23 2001 --> Wed Mar 21 2001 or Fri Mar 23 2001 or Wed Mar 28 2001 or ....
+
+* Fri Feb 05 2016 stephane de Labrusse <stephdl@de-labrusse.fr> 2.6.0-1.sme
+- Initial release to sme10
+
+* Sat Apr 26 2014 Ian Wells <esmith@wellsi.com> 2.4.0-9.sme
+- Move mysql logging to multilog [SME: 8358]
+
+* Mon Apr 14 2014 Ian Wells <esmith@wellsi.com> 2.4.0-8.sme
+- Remove the information_schema [SME: 8325]
+
+* Mon Mar 17 2014 Ian Wells <esmith@wellsi.com> 2.4.0-7.sme
+- Use mysql_upgrade in 00_restore_dumped_dbs, by Terje Edseth [SME: 8166]
+- Rename 10fix_privilege_tables to 10mysql_upgrade to reduce confusion.
+
+* Sun Feb 2 2014 Ian Wells <esmith@wellsi.com> 2.4.0-6.sme
+- Use mysql_upgrade --force due to upgrade to MySQL 5.1 [SME: 8166]
+
+* Thu Jun 6 2013 Daniel Berteaud <daniel@firewall-services.com> 2.4.0-5.sme
+- Ignore mysql.event table [SME: 7603]
+
+* Wed Mar 20 2013 Ian Wells <esmith@wellsi.com> 2.4.0-4.sme
+- Use --single-transaction in mysql-dump-tables [SME: 7497]
+
+* Sat Mar 16 2013 Ian Wells <esmith@wellsi.com> 2.4.0-3.sme
+- Use mysql_upgrade instead of fix_privilege_tables [SME: 7467]
+
+* Mon Feb 18 2013 Daniel Berteaud <daniel@firewall-services.com> 2.4.0-2.sme
+- Remove obsolete innodb_log_arch_dir directive [SME: 7363]
+
+* Wed Feb 13 2013 Shad L. Lords <slords@mail.com> 2.4.0-1.sme
+- Roll new stream for sme9
+
+* Tue Mar 1 2011 Jonathan Martens <smeserver-contribs@snetram.nl> 2.2.0-6.sme
+- Cater for open_files_limit option my.cnf through database and template [SME: 6438]
+
+* Thu Oct 28 2010 Shad L. Lords <slords@mail.com> 2.2.0-5.sme
+- Fix stripping of starting numbers from script [SME: 6316]
+
+* Mon Jun  7 2010 Filippo Carletti <filippo.carletti@gmail.com> 2.2.0-4.sme
+- Fix %postun typo [SME: 6030]
+
+* Mon Feb 23 2009 Jonathan Martens <smeserver-contribs@snetram.nl> 2.2.0-3.sme
+- Rework log-error logic [SME: 4807]
+
+* Tue Dec 2 2008 Jonathan Martens <smeserver-contribs@snetram.nl> 2.2.0-2.sme
+- Fix log-error detection algorithm [SME: 4807]
+
+* Tue Oct 7 2008 Shad L. Lords <slords@mail.com> 2.2.0-1.sme
+- Roll new stream to separate sme7/sme8 trees [SME: 4633]
+
+* Mon Oct 06 2008 Charlie Brady <charlie_brady@mitel.com> 1.13.0-2
+- Capture mysql.init error logs to syslog. [SME: 2918]
+
+* Mon Oct 6 2008 Stephen Noble <support@dungog.net> 1.13.0-1
+- Roll new dev stream [SME: 4627]
+
+* Wed Jan 09 2008 Stephen Noble <support@dungog.net> 1.12.0-15
+- quote "$1" in post uninstall script [SME: 349]
+
+* Sun Apr 29 2007 Shad L. Lords <slords@mail.com>
+- Clean up spec so package can be built by koji/plague
+
+* Sat Apr 21 2007 Shad L. Lords <slords@mail.com> 1.12.0-14
+- Force upgrade script to run even with errors. [SME: 2530]
+
+* Mon Apr 9 2007 Stephen Noble <Support@dungog.net> 1.12.0-13
+- Add db settings to max_allowed_packet in my.cnf [SME: 2149]
+
+* Mon Apr 9 2007 Stephen Noble <Support@dungog.net> 1.12.0-12
+- Add to my.cnf [SME: 2149]
+
+* Thu Jan 11 2007 Shad L. Lords <slords@mail.com> 1.12.0-11
+- Move user to mysql section. [SME: 1474]
+
+* Wed Dec 27 2006 Shad L. Lords <slords@mail.com> 1.12.0-10
+- Split backups out by database name [SME: 1677]
+
+* Thu Dec 07 2006 Shad L. Lords <slords@mail.com>
+- Update to new release naming.  No functional changes.
+- Make Packager generic
+
+* Thu Nov  9 2006 Charlie Brady <charlie_brady@mitel.com> 1.12.0-08
+- Ensure that failed restore is detected during mysql.init. [SME: 1652]
+
+* Mon Sep 25 2006 Charlie Brady <charlie_brady@mitel.com> 1.12.0-07
+- Fix pre-backup failure if mysqld is disabled in config db. [SME: 1937]
+
+* Tue Jun 27 2006 Filippo Carletti <carletti@mobilia.it> 1.12.0-06
+- Execute mysql_install_db using sh [SME: 1654]
+
+* Sun Apr 30 2006 Charlie Brady <charlie_brady@mitel.com> 1.12.0-05
+- Make innodb optional, and configure it as recommended, if enabled.
+  [SME: 1013]
+
+* Tue Apr 18 2006 Gordon Rowell <gordonr@gormand.com.au> 1.12.0-04
+- Add missing semi-colon to FLUSH PRIVILEGES statement [SME: 1229]
+
+* Mon Apr 10 2006 Gordon Rowell <gordonr@gormand.com.au> 1.12.0-03
+- Revise last patch - it backed out the db restore [SME: 1229]
+
+* Mon Apr 10 2006 Gordon Rowell <gordonr@gormand.com.au> 1.12.0-02
+- Move expansion of user table into set.password so it works
+  for command line runs as well as db restores [SME: 1229]
+
+* Thu Mar 16 2006 Gordon Rowell <gordonr@gormand.com.au> 1.12.0-01
+- Roll stable stream version. [SME: 1016]
+
+* Mon Feb 13 2006 Charlie Brady <charlie_brady@mitel.com> 1.11.1-16
+- Update dependencies to include mysql-server RPM. Remove obsolete
+  dependency on e-smith-packetfilter. [SME: 737]
+
+* Fri Jan  6 2006 Gordon Rowell <gordonr@gormand.com.au> 1.11.1-15
+- Remove explicit permission setting for /home/e-smith/db from
+  genfilelist call [SME: 371]
+
+* Sun Jan  1 2006 Charlie Brady <charlieb@e-smith.com> 1.11.1-14
+- Ensure that mysql is restarted after restore, and avoid race conditions
+  during mysqld restart during fix_privilege_tables. [SME: 73]
+- Remove unnecessary mkdirs in build section - they're done by createlinks
+  script.
+
+* Wed Dec 14 2005 Gordon Rowell <gordonr@gormand.com.au> 1.11.1-13
+- Call fix_privilege_tables much earlier and call mysqladmin shutdown 
+  after doing so - Thanks Paul Floor [SME: 73]
+
+* Wed Nov 30 2005 Gordon Rowell <gordonr@gormand.com.au> 1.11.1-12
+- Call mysql fix_privilege_tables in mysql.init [SME: 73]
+
+* Wed Nov 30 2005 Gordon Rowell <gordonr@gormand.com.au> 1.11.1-11
+- Bump release number only
+
+* Tue Nov 15 2005 Gordon Rowell <gordonr@e-smith.com>
+- [1.11.1-10]
+- Reset the format of the MySQL root password for old dumps [SF: 1325378]
+
+* Wed Aug 31 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-09]
+- Avoid error from db-delete action if db files are not present
+  (e.g. because they have already been deleted). [SF: 1273797]
+
+* Mon Aug 29 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-08]
+- Fix restore of dumped tables after restore from backup.
+  Reset root password after restore of dumped dbs. [SF: 1273797]
+
+* Thu Jun 16 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-07]
+- Ensure that 'status' property of mysql.init is honoured at
+  startup. [MN00061795]
+
+* Tue Jun 14 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-06]
+- Work around race condition between mysql startup and
+  mysql.init. [SF: 1217966]
+
+* Fri Apr 29 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-05]
+- Use -f flag in mysql-delete-dumped-tables so that backup
+  doesn't fail if the file is missing.
+
+* Fri Apr 15 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-04]
+- Change /root/.my.cnf template to use esmith::util::LdapPassword
+  rather than read of ldap.pw file, to eliminate ordering
+  depenendence on ldap.pw template expansion.
+
+* Fri Apr 15 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-03]
+- Restore old mysql.init behaviour, to leave any failed scripts
+  behind for a later attempt, or for admin investigation. [MN00079643]
+
+* Wed Apr 13 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-02]
+- Fix up import of tables after a restore. Remove a few bogus
+  symlinks.
+
+* Wed Apr 13 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.1-01]
+- Roll new development stream - 1.11.1
+
+* Mon Apr 11 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.0-16]
+- Fix typo and runtime error in run script. Detect table dump
+  to be restored and set it up for mysql.init to restore it.
+
+* Sun Apr 10 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.0-15]
+- Remove trap stuff in run script (which works around mysqld brokenness)
+  and add custom control/{t,q,d,i} scripts.
+
+* Sun Apr 10 2005 Charlie Brady <charlieb@e-smith.com>
+- [1.11.0-14]
+- Remove obsolete e-smith-packetfilter Requires: header.
+- Do db initialisation in run script, as required, rather than via
+  special action script.
+- Replace all restart-, start- and reload- actions with calls to
+  'adjust-services'. Update e-smith-lib version dependency. [MN00065576]
+- Use generic_template_expand action where possible, in place
+  of specific actions. Update e-smith-lib dependency. [MN00064130]
+
+* Wed Dec 29 2004 Charlie Brady <charlieb@e-smith.com>
+- [1.11.0-13]
+- Fix permissions on log/run script. Add missing /var/log/mysqld dir.
+  [charlieb MN00061220]
+
+* Wed Dec 29 2004 Charlie Brady <charlieb@e-smith.com>
+- [1.11.0-12]
+- Add missing down file in service directory.. Fix permissions
+  on run script. [charlieb MN00061220]
+
+* Tue Dec 28 2004 Charlie Brady <charlieb@e-smith.com>
+- [1.11.0-11]
+- Add missing /service/mysqld symlink [charlieb MN00061220]
+
+* Mon Dec 20 2004 Charlie Brady <charlieb@e-smith.com>
+- [1.11.0-10]
+- Run mysqld under supervise. [charlieb MN00061220]
+- Replace deprecated Copyright header with License. [charlieb]
+
+* Tue Jan  6 2004 Michael Soulier <msoulier@e-smith.com>
+- [1.11.0-09]
+- Added restart to valid arguments to mysql.init. [msoulier 10866]
+
+* Tue Jan  6 2004 Michael Soulier <msoulier@e-smith.com>
+- [1.11.0-08]
+- Fixed mysql.init leaving behind failed scripts, and the lack of proper
+  initscript command-line arguments. [msoulier 10866]
+
+* Wed Dec 24 2003 Tony Clayton <apc@e-smith.com>
+- [1.11.0-07]
+- Updating comments in my.cnf [tonyc 10862]
+- Don't show redundant log-error option in mysqld_safe [tonyc 10862]
+
+* Mon Dec 22 2003 Tony Clayton <apc@e-smith.com>
+- [1.11.0-06]
+- fixing initscript symlink [tonyc 10862]
+
+* Mon Dec 22 2003 Tony Clayton <apc@e-smith.com>
+- [1.11.0-05]
+- Add /var/run/mysqld dir for mysql.com compatibility [tonyc 10862]
+- Fix initscript symlink [tonyc 10862]
+
+* Mon Dec 22 2003 Tony Clayton <apc@e-smith.com>
+- [1.11.0-04]
+- Add initscript symlink for mysql.com compatibility [tonyc 10862]
+- Adding /etc/logrotate.d/mysqld templates [tonyc 8662]
+
+* Thu Dec 18 2003 Tony Clayton <apc@e-smith.com>
+- [1.11.0-03]
+- Clean up /etc/my.cnf templates and add comments [tonyc 10862]
+- Add a more --user=mysql options to actions for 100% coverage [tonyc 10862]
+- Remove redundant basedir/datadir options from actions [tonyc 10862]
+- Clean up mysql-preload fork/exec stuff [tonyc 10862]
+
+* Tue Dec 16 2003 Tony Clayton <apc@e-smith.com>
+- [1.11.0-02]
+- Add --user=mysql to mysqld args in conf-mysql-password [tonyc 10853]
+- Future-proof /etc/my.cnf for s/safe_mysqld/mysqld_safe/ change [tonyc 8662]
+
+* Tue Dec 16 2003 Tony Clayton <apc@e-smith.com>
+- [1.11.0-01]
+- Changing version to development stream number - 1.11.0
+
+* Thu Jun 26 2003 Charlie Brady <charlieb@e-smith.com>
+- [1.10.0-01]
+- Changing version to stable stream number - 1.10.0
+
+* Wed Apr 23 2003 Charlie Brady <charlieb@e-smith.com>
+- [1.9.0-03]
+- Remove stray " in mysql-dump-tables. [charlieb 8475]
+
+* Tue Apr  1 2003 Charlie Brady <charlieb@e-smith.com>
+- [1.9.0-02]
+- Restrict mysql by default to use only unix domain socket. [charlieb 6430]
+- Change mysql dump in pre-backup to use quotes, to fix backup/restore problem.
+  [charlieb 7953]
+- Remove conf-mysql-startup - use db initialisation fragments instead
+  [charlieb 5665]
+
+* Tue Apr  1 2003 Charlie Brady <charlieb@e-smith.com>
+- [1.9.0-01]
+- Roll development version to 1.9.0
+
+* Mon Mar 17 2003 Lijie Deng <lijied@e-smith.com>
+- [1.8.0-03]
+- Deleted template-begin/end file [lijied 3295]
+
+* Thu Jan 23 2003 Charlie Brady <charlieb@e-smith.com>
+- [1.8.0-02]
+- Fix typo in mysql-restart action script (mysql => mysqld). [charlieb 4774]
+
+* Fri Oct 11 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.8.0-01]
+- Rolling stable version number to 1.8.0
+
+* Fri Oct 11 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.8.0-01]
+- Rolling stable version number to 1.8.0
+
+* Wed Sep 25 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-10]
+- Reverse the recent logic change in mysql.init, now that action() function
+  in /etc/rc.d/init.d/functions is repaired. Replace deprecated use
+  of backticks. [charlieb 4728]
+
+* Mon Sep 23 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-09]
+- Actually expand /etc/my.cnf template - that's what it's for! [charlieb 4731]
+
+* Mon Sep 23 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-08]
+- Fix logic problem in mysql.init [charlieb 4728]
+
+* Tue Sep 10 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-07]
+- Add fragment to my.cnf template to disable (for now) innoDB tables, and
+  hence prevent log file noise. [charlieb 4731]
+
+* Mon Sep  9 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-06]
+- Update mysql-restart action and link into timezone-update event
+  [charlieb 4774]
+
+* Mon Sep  9 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-05]
+- Set $HOME in mysql.init script itself, otherwise it's not set when
+  run from the rc run script. Fix filenames displayed in progress message.
+  [charlieb 4782]
+- Remove redundant mysql.conf action script [charlieb 4782]
+
+* Fri Sep  6 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-04]
+- Create newly required email-update event directory. [charlieb 4782]
+
+* Fri Sep  6 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-03]
+- Change mysql-dump-tables and mysql-delete-dumps events to pre-backup and
+  post-backup events. [charlieb 2745]
+- Add mysql-start-if-required action, which checks if mysqld is running,
+  and start it, then runs mysql.init, if not. Linked into email-update event.
+  [charlieb 4782]
+- Redo conf-mysql-startup using ConfigDB and remove no longer necessary
+  serviceControl() calls. [charlieb 4782]
+- Redo mysql-conf using esmith::templates. [charlieb 4782]
+- Change mysql.init script so that it can run programs or just load sql.
+  [charlieb 4782]
+
+* Wed Aug 28 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-02]
+- Create missing /etc/e-smith/sql/init directory [charlieb 4333]
+
+* Thu Aug 22 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.4-01]
+- Remove 45DenyMySQL template fragment - it's no longer needed since we
+  are using connection tracking. [charlieb 4499]
+
+* Tue Aug 20 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.3-01]
+- Add rc7.d symlinks and don't set obsolete InitscriptsOrder property
+  of services. [charlieb 4458]
+
+* Wed Jul 17 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.2-01]
+- Change masq script fragment to use iptables. [charlieb 1268]
+
+* Wed Jun  5 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.1-01]
+- Test build to verify CVS conversion
+
+* Wed Jun 5 2002 Charlie Brady <charlieb@e-smith.com>
+- [1.7.0-01]
+- rollRPM: Rolled version number to 1.7.0-01. Includes patches up to 1.6.0-01.
+
+* Tue Dec 11 2001 Jason Miller <jay@e-smith.com>
+- [1.6.0-01]
+- rollRPM: Rolled version number to 1.6.0-01. Includes patches up to 1.5.0-03.
+
+* Thu Dec  6 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.5.0-03]
+- Adding more verbose error messages to mysql-dump-tables.
+- It should exit 0 if an error occurs, it should exit 1, and complain.
+
+* Wed Oct 31 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.5.0-02]
+- mysql-restart now restarts mysql if it is running, rather
+  than only starting it if it is stopped.
+- mysql-shutdown has been added
+- conf-mysql is now mysql-initialize-db
+- new template /etc/my.cnf added
+- new action mysql-conf which expands /etc/my.cnf linked to
+  bootstrap-console-save
+
+* Mon Oct 29 2001 Adrian Chung <mac@e-smith.com>
+- [1.5.0-01]
+- Rolled version number to 1.5.0-01. Includes patches upto 1.4.0-03.
+- Removed directive to remove post-restore event.
+
+* Tue Aug 28 2001 Gordon Rowell <gordonr@e-smith.com>
+- [1.4.0-03]
+- Removed deprecated post-restore event directory
+
+* Fri Aug 17 2001 gordonr
+- [1.4.0-02]
+- Autorebuild by rebuildRPM
+
+* Wed Aug 8 2001 Charlie Brady <charlieb@e-smith.com>
+- [1.4.0-01]
+- Rolled version number to 1.4.0-01. Includes patches upto 1.3.0-18.
+
+* Wed Aug 08 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-18]
+- force mysql.init to sort files in init directory
+
+* Tue Aug  7 2001 Charlie Brady <charlieb@e-smith.com>
+- [1.3.0-17]
+- Fix uninitialised variable problem in masq fragment.
+
+* Wed Jul 04 2001 Gordon Rowell <gordonr@e-smith.com>
+- [1.3.0-16]
+- Added use esmith::util to mysql-dump-tables
+
+* Wed Jul 04 2001 Gordon Rowell <gordonr@e-smith.com>
+- [1.3.0-15]
+- Use esmith::util::LdapPassword rather than direct file read
+
+* Tue May 29 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-14]
+- fixed actions that had tied %conf when calling serviceControl (2 actions)
+
+* Sat Apr 07 2001 Gordon Rowell <gordonr@e-smith.com>
+- [1.3.0-13]
+- Forward port patches from 1.2.0-05 to 1.2.0-08
+
+* Fri Apr 06 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.2.0-08]
+- fixed mkdir calls in mysql-delete-dumped-tables (arguments in wrong order)
+ 
+* Thu Apr 05 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-12]
+- force mysql.init to print to stderr instead of stout
+
+* Fri Mar 23 2001 Tony Clayton <tonyc@e-smith.com>
+  Wed Mar 23 2001 --> Wed Mar 21 2001 or Fri Mar 23 2001 or Wed Mar 28 2001 or ....
+- [1.3.0-11]
+- fixed uninitialized value error in conf-mysql-startup
+
+* Wed Mar 21 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-10]
+- fixed error on empty glob in mysql.init
+
+* Wed Mar 21 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-09]
+- fixed harmless errors thrown by mysql.init
+
+* Wed Mar 21 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-08]
+- fixed tie bug in conf-mysql-startup script which prevented the mysqld service
+  from being initialized properly.
+
+* Thu Mar 15 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-07]
+- created mysql.init initscript
+- added serviceControl code for mysql.init in conf-mysql-startup
+
+* Sat Mar 10 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-06]
+- fixed mysql call in /sbin/e-smith/mysql-preload
+
+* Sat Mar 10 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.3.0-05]
+- fixed bugs in /sbin/e-smith/mysql-preload
+
+* Fri Mar  9 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.3.0-04]
+- added /sbin/e-smith/mysql-preload
+
+* Sat Mar  3 2001 Charlie Brady <charlieb@e-smith.com>
+- [1.2.0-07]
+- add packetfilter template fragment to deny tcp/3306
+  Make packet filter fragment depend on the service db. Only block
+  TCP SYN packets.
+- add Requires for e-smith-packetfilter.
+- Add required permissions parameter to mkdir calls.
+
+* Thu Mar  1 2001 Charlie Brady <charlieb@e-smith.com>
+- [1.3.0-03]
+- Make packet filter fragment depend on the service db. Only block
+  TCP SYN packets.
+- Add required permissions parameter to mkdir calls.
+
+* Thu Mar  1 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.3.0-02]
+- add packetfilter template fragment to deny tcp/3306
+- add Requires for e-smith-packetfilter.
+
+* Thu Mar  1 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.3.0-01]
+- Development stream, includes all patches up to and including
+  1.2.0-05.
+- Ported Charlie's MySQL->mysql requires change to development
+  stream.  Was 1.2.0-06, but not built.
+
+* Fri Feb 16 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.2.0-05]
+- changed -C option to useradd to a -c for comments.
+
+* Thu Feb  8 2001 Adrian Chung <adrianc@e-smith.com>
+- Rolling release number for GPG signing.
+
+* Thu Jan 25 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.2.0-03]
+- changed conf-mysql-account to 08 instead of 05.
+
+* Thu Jan 25 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.2.0-02]
+- remove rc0.d/rc6.d symlinks and replace with links to 
+  e-smith-service instead.
+
+* Thu Jan 25 2001 Peter Samuel <peters@e-smith.com>
+- [1.2.0-01]
+- Rolled version number to 1.2.0-01. Includes patches upto 1.1.0-31.
+
+* Thu Jan 25 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-31]
+- take expansion of logrotate.d/mysqld template out
+  of conf-mysqld
+
+* Wed Jan 24 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-30]
+- leave logrotate.d/mysqld alone now, back out patch
+- expanding /root/.my.cnf with the password alleviates
+  need to pass -p to mysqladmin
+
+* Wed Jan 24 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-29]
+- expand logrotate.d/mysqld template
+- add template directory for logrotate.d/mysqld
+
+* Wed Jan 24 2001 Charlie Brady <charlieb@e-smith.com>
+- [1.1.0-28]
+- Create new mysql-conf-account script - set up mysql account and add it
+  to the accounts db. Called from post-install and post-upgrade
+
+* Wed Jan 17 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-27]
+- default mysql to enabled
+
+* Wed Jan 17 2001 Peter Samuel <peters@e-smith.com>
+- [1.1.0-26]
+- added mysql-delete-dumped-tables action to post-upgrade event
+
+* Wed Jan 17 2001 Peter Samuel <peters@e-smith.com>
+- [1.1.0-25]
+- mysql-dump-tables and mysql-import-tables actions do nothing if mysqld
+  is not running.
+- mysql-dump-tables action does nothing if the dump directory does
+  not exist.
+- mysql-import-tables action does nothing if there is no dump file from
+  which to import.
+- created 2 new events - mysql-delete-dumps and mysql-dump-tables
+- removed mysql-import-tables action from post-restore
+- added mysql-import-tables action to post-upgrade
+- created new action mysql-delete-dumped-tables
+- added patch22 to list of patches to be applied - must have been
+  missed in 1.1.0-24.
+
+* Sat Jan 13 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-24]
+- typo $action => restart
+
+* Sat Jan 13 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-23]
+- mysql-{import,dump}-tables checks for enabled status of mysqld
+  before attempting to dump/import
+
+* Fri Jan 12 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-22]
+- changed "Couldn't $action mysqld" to "Couldn't restart mysqld".
+
+* Fri Jan 12 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-21]
+- $ in front of ENV{'PATH'}
+
+* Fri Jan 12 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-20]
+- add PATH setting to conf-mysql
+
+* Fri Jan 12 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-19]
+- get rid of --no-defaults
+
+* Fri Jan 12 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-18]
+- --force mysql_install_db
+
+* Fri Jan 12 2001 Tony Clayton <tonyc@e-smith.com>
+- [1.1.0-17]
+- converted to using serviceControl
+
+* Fri Jan 12 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-16]
+- conf-mysql needs to run even if the service isn't enabled
+  so that during runtime, it can be enabled, and just go.
+
+* Thu Jan 11 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-15]
+- datadir check should be /var/lib/mysql/mysql.
+
+* Thu Jan 11 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-14]
+- conf-mysql-password checks for MySQL datadir first
+- mysql-{dump,import}-tables moved to
+  /etc/e-smith/events/actions
+- mysql-import-tables added to post-restore action
+
+* Thu Jan 11 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-13]
+- conf-mysql-password resets the root password, and
+  gets rid of two blank account entries
+- /sbin/e-smith/mysql-dump-tables has been added
+  which dumps mysql.dump to /home/e-smith/db/mysql
+- /sbin/e-smith/mysql-import-tables has been added
+  which imports a mysql.dump text file back into a
+  running system
+
+* Thu Jan 11 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-12]
+- conf-mysql-password now runs in console-save as well.
+- if the system is started up without mysqld enabled, 
+  a password won't be set, since there are no mysql tables
+  initialized yet.
+
+* Thu Jan 11 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-11]
+- conf-mysql-password runs without checking whether mysql
+  is enabled.  It does not require mysqld to be started, and
+  should always at least keep the root password in sync, in
+  case mysqld is enabled, and started during a running system
+  session.
+
+* Thu Jan 11 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-10]
+- add mysql-conf-startup to post-install/upgrade.
+
+* Thu Jan 11 2001 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-9]
+- make conf-mysql-password set the mysql password, instead of
+  setting up a once-run script.
+
+* Wed Jan 10 2001 Charlie Brady <charlieb@e-smith.com>
+- [1.1.0-8]
+- Create new mysql-conf-startup script - split from mysql-conf
+- Create new bootstrap-console-save event and install mysql-conf into it
+
+* Mon Dec 18 2000 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-7]
+- added configuration database to db command.(typo).
+
+* Mon Dec 18 2000 Adrian Chung <adrianc@e-smith.com>
+- [1.1.0-6]
+- added UnsavedChanges wrapper around script so that it resets
+  UnsavedChanges flag appropriately.
+
+* Fri Dec 15 2000 Adrian Chung <adrianc@e-smith.com>
+- Added chmod 0755 for mysqld-password init script.
+- Moved /etc/etc/rc.d to /etc/rc.d
+
+* Fri Dec 15 2000 Adrian Chung <adrianc@e-smith.com>
+- Added conf-mysql-password to post-install which sets 
+  up mysqld-password in rc7.d to be run once to set the 
+  password.  The mysqld-password script removes it's link
+  from runlevel 7 and updates the configuration/services
+  database.
+
+* Fri Nov 24 2000 Adrian Chung <adrianc@e-smith.com>
+- Changed mysql to mysqld.
+
+* Wed Nov 22 2000 Adrian Chung <adrianc@e-smith.com>
+- Minor modifications to conf-mysql script to make it work
+  with the RH7.0 version of mysql.
+
+* Wed Nov 22 2000 Adrian Chung <adrianc@e-smith.com>
+- Rolled to 1.1.0, for 4.1/7.0 stream.  Changed mysql to mysqld.
+
+* Tue Nov 14 2000 Adrian Chung <adrianc@e-smith.com>
+- initial release
+

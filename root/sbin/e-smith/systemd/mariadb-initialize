@@ -1,0 +1,14 @@
+#! /bin/sh
+
+exec 2>&1
+if [ ! -f /var/lib/mysql/mysql/user.frm ]
+then
+    setuidgid mysql sh /usr/bin/mysql_install_db
+    /usr/libexec/mysqld --bootstrap --user=mysql --skip-grant-tables < /var/lib/mysql/set.password
+    if [ -f /home/e-smith/db/mysql/mysql.dump ]
+    then
+        /sbin/e-smith/expand-template /etc/e-smith/sql/init/00_restore_dumped_dbs
+    fi
+else
+   /usr/libexec/mysqld --bootstrap --user=mysql --skip-grant-tables < /var/lib/mysql/set.password
+fi

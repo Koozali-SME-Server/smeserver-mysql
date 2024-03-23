@@ -1,0 +1,9 @@
+/var/log/mysql.init/*.log {
+        create 640 root root
+        notifempty
+        daily
+        rotate 3
+        missingok
+        compress
+}
+

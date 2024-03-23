@@ -1,0 +1,6 @@
+{
+	# InnoDB is mandatory with mariadb
+	my $a = $DB->get("mariadb") or return;
+	return unless (exists $mariadb{'InnoDB'});
+	$DB->get_prop_and_delete('mariadb', 'InnoDB');
+}

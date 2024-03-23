@@ -1,0 +1,5 @@
+socket=/var/lib/mysql/mysql.sock
+{
+    my $localonly = $mariadb{LocalNetworkingOnly} || "no";
+    $OUT = ($localonly eq 'yes') ? "skip-networking" : "# networking is enabled";
+}

@@ -1,0 +1,90 @@
+{
+    $OUT = '';
+    my $var;
+    $var = ${'mariadb'}{'MaxConnections'} || undef;
+    #default 151; range 10 to 100000
+    $OUT .= "max_connections=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'WaitTimeout'} || undef;
+    #default 28800
+    $OUT .= "wait_timeout=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'QueryCacheLimit'} || undef;
+    #default 1048576 (1M)
+    $OUT .= "query_cache_limit=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'QueryCacheSize'} || '1M';
+    #default 1048576 (1M)
+    $OUT .= "query_cache_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'QueryCacheType'} || '1';
+    #default 0 or OFF, 1 or ON, 2 or DEMAND
+    $OUT .= "query_cache_type=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'SortBufferSize'} || undef;
+    #default 2M
+    $OUT .= "sort_buffer_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'ReadRndBufferSize'} || undef;
+    #default 262144 from 8200 to 2147483647
+    $OUT .= "read_rnd_buffer_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'TableOpenCache'} || undef;
+    #default 400 (2000 sice 10.1.7)
+    $OUT .= "table_open_cache=$var\n" if defined $var;
+
+    #Introduced: MariaDB 10.2.2 
+    #$var = ${'mariadb'}{'TableOpenCacheInstances'} || undef;
+    ##default 8
+    #$OUT .= "table_open_cache_instances=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'TmpTableSize'} || undef;
+    #default 16M
+    $OUT .= "tmp_table_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'MaxHeapTableSize'} || undef;
+    #default 16M
+    $OUT .= "max_heap_table_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'ThreadCacheSize'} || 256;
+    #default 0 from 0 to 16384
+    $OUT .= "thread_cache_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'KeyBufferSize'} || undef;
+    #default 134217728 - myisam only
+    $OUT .= "key_buffer_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'MyisamSortBufferSize'} || undef;
+    #default 128M - before 10.0.3: 8M
+    $OUT .= "myisam_sort_buffer_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'JoinBufferSize'} || 262144;
+    #default 262144
+    $OUT .= "join_buffer_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'ReadBufferSize'} || undef;
+    #default 131072
+    $OUT .= "read_buffer_size=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'ConnectTimeout'} || undef;
+    #default 10
+    $OUT .= "connect_timeout=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'MaxConnectErrors'} || 100;
+    #default 100
+    $OUT .= "max_connect_errors=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'MaxAllowedPacket'} || '16M';
+    #default 4M
+    $OUT .= "max_allowed_packet=$var\n" if defined $var;
+
+    $var = ${'mariadb'}{'SlowQueries'} ||undef;
+    if (defined $var)
+    {
+	$OUT .= "log_slow_queries=1\n"; # change to slow_query_log in mariadb 10.1
+	$OUT .= "long_query_time=$var\n";
+	$OUT .= "slow_query_log_file=\"/var/log/mariadb/slow_queries.log\"\n";
+    }
+
+}
+

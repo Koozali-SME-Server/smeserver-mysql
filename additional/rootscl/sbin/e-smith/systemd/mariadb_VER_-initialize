@@ -1,0 +1,58 @@
+#!/bin/bash
+datadir="/var/opt/rh/rh-mariadb!!!VER!!!/lib/mysql"
+
+# We have to re-enable SCL environment, because /sbin/service
+# clears almost all environment variables.
+# Since X_SCLS is cleared as well, we lose information about other
+# collections enabled.
+. /opt/rh/rh-mariadb!!!VER!!!/service-environment
+for sclname in $RH_MARIADB!!!VER!!!_SCLS_ENABLED ; do
+    . /opt/rh/$sclname/enable
+    export X_SCLS="$X_SCLS $sclname"
+done
+
+# we want start daemon only inside "scl enable" invocation
+if ! scl_enabled $sclname ; then
+    echo "Collection $sclname has to be listed in /opt/rh/rh-mariadb!!!VER!!!/service-environment"
+    exit 1
+fi
+
+if [ ! -f $datadir/mysql/user.frm ]
+then
+    touch /var/log/mariadb!!!VER!!!/mariadb.log
+    chown mysql:mysql /var/log/mariadb!!!VER!!!/mariadb.log
+    chmod 0640 /var/log/mariadb!!!VER!!!/mariadb.log
+    echo "Initializing mariadb!!!VER!!! database"
+    /opt/rh/rh-mariadb!!!VER!!!/root/usr/libexec/mysql-prepare-db-dir
+    ret=$?
+    if [ $ret -ne 0 ] ; then
+        echo "Initialization of MySQL database failed." >&2
+        echo "Perhaps /etc/opt/rh/rh-mariadb!!!VER!!!/my.cnf is misconfigured." >&2
+        # Clean up any partially-created database files
+        if [ ! -e "$datadir/mysql/user.frm" ] ; then
+            rm -rf "$datadir"/*
+        fi
+        exit $ret
+    fi
+    # set root password , 104 and above have a different syntax and allow root passwordless access
+    if [ !!!VER!!! -le  103 ]
+    then
+      /opt/rh/rh-mariadb!!!VER!!!/root/usr/libexec/mysqld --bootstrap --datadir="$datadir" --user="mysql" < /var/lib/mysql/set.password2
+    fi
+    # upgrade does not need to be run on a fresh datadir
+    #echo "5.7.24" >"$datadir/mysql_upgrade_info"
+    # In case we're running as root, make sure files are owned properly
+    chown -R "mysql:mysql" "$datadir"
+
+    if [ -f /home/e-smith/db/mariadb!!!VER!!!/mysql.dump ]
+    then
+        /sbin/e-smith/expand-template /etc/e-smith/sql/init!!!VER!!!/00_restore_dumped_dbs
+    fi
+else
+   # else we set root password anyway ! just to be sure ! 104 and above have a different syntax and allow root passwordless access
+   if [ !!!VER!!! -le  103 ]
+   then
+     /opt/rh/rh-mariadb!!!VER!!!/root/usr/libexec/mysqld --bootstrap --datadir="$datadir" --user="mysql" < /var/lib/mysql/set.password2
+   fi
+   exit 0
+fi

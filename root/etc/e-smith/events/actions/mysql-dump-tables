@@ -1,0 +1,41 @@
+#!/bin/sh
+
+status=$(/sbin/e-smith/config getprop mariadb status)
+fixtables=$(/sbin/e-smith/config getprop mariadb autofixtables || echo "disabled")
+if [ "$fixtables" = "enabled" ]; then
+	/sbin/e-smith/config delprop mariadb failsbackup
+fi
+failsbackup=$(/sbin/e-smith/config getprop mariadb failsbackup || echo "disabled")
+
+
+onfailure () {
+    db=$1
+    message=""
+    if [ "$failsbackup" = "enabled" ]; then
+        exit 1;
+	message="There was an error trying to dump database $db, please fix this db. We stop there without backups."
+	echo $message
+	echo $message | /usr/bin/mail -s "error on backup of $db MariaDB database" admin
+    fi
+    message="$message \nThere was an error trying to dump database $db, please check for table errors in this db. Forcing a backup of the corrupted DB."
+    mysqldump --force --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db"-failed.dump || message="$message \nFailed to force backup of corrupted db $db as $db-failed.dump" >&2
+    if [ "$fixtables" = "enabled" ]; then
+	repair="failure"
+	message="$message \nTrying to auto-repair the db and do a backup after..."
+	mysqlcheck -s --auto-repair -c "$db"  &&  \
+   	mysqldump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump && repair="success"
+	message="$message \n => $repair"
+    fi
+    echo $message
+    echo $message | /usr/bin/mail -s "error on backup of $db MariaDB database" admin
+}
+
+if [ "$status" = "disabled" ]
+then
+    echo "mysqld is disabled - no tables dumped" >&2
+    exit 0
+fi
+for db in $(mysql -BNre "show databases;"|egrep -vi "^information_schema$|^performance_schema$") 
+do
+    mysqldump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump || onfailure $db
+done

@@ -1,0 +1,9 @@
+{
+    $OUT = '';
+    # changed 0 to 32186 for mariadb 5.5 see BZ 12417
+    my $limit = ${'mariadb'}{OpenFilesLimit} || 32186;
+    return if $limit eq 0;
+
+    $OUT .= "open_files_limit=$limit\n";
+
+}

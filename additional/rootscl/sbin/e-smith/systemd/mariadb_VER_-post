@@ -1,0 +1,18 @@
+#!/bin/bash
+
+for i in $(seq 1 20);
+do
+  if [ -S !!!SOCKET!!! ]
+  then
+      /usr/bin/mysql!!!VER!!! < /var/lib/mysql/set.password2
+      echo  "root password set"
+      exit 0
+  fi
+  echo waiting for rh-mariadb105-mariadb to start to set root password
+  sleep 1
+done
+echo  failed to set root password
+# we fail silently, mariadb will still work, only issue is for phpmyadmin
+# and non socket access
+exit 0
+

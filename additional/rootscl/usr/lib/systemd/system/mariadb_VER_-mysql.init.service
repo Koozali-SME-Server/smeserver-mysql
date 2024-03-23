@@ -1,0 +1,20 @@
+[Unit]
+SourcePath=/sbin/e-smith/systemd/mariadb!!!VER!!!-mysql.init
+Description=Koozali SME Server mysql DB injector for mariadb!!!VER!!!
+After=mariadb!!!VER!!!-mariadb.service
+Requires=mariadb!!!VER!!!-mariadb.service
+
+[Service]
+Type=oneshot
+Restart=no
+TimeoutSec=10min
+IgnoreSIGPIPE=no
+KillMode=process
+GuessMainPID=no
+RemainAfterExit=yes
+ExecStart=/sbin/e-smith/systemd/mariadb!!!VER!!!-mysql.init start
+ExecStop=/sbin/e-smith/systemd/mariadb!!!VER!!!-mysql.init stop
+
+[Install]
+WantedBy=sme-server.target
+

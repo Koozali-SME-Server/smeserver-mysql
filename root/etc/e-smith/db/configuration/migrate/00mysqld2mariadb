@@ -1,0 +1,11 @@
+{
+  # Rename mysqld service entry to mariadb
+
+  my $mysqld = $DB->get('mysqld') or return;
+  my $mariadb = $DB->get('mariadb') ||
+                $DB->new_record('mariadb', { type => 'service' });
+
+  $mariadb->merge_props($mysqld->props);
+  $mysqld->delete;
+
+}

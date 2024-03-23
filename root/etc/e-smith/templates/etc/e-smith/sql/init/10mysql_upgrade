@@ -1,0 +1,16 @@
+#!/bin/sh
+/usr/bin/mysql_upgrade 
+
+/bin/rm /var/run/mariadb/mariadb.pid
+/usr/bin/systemctl restart mariadb.service
+for i in $(seq 1 20);
+do
+  if [ -f /var/run/mariadb/mariadb.pid ]
+  then
+      exit 0
+  fi
+  echo waiting for mysqld to restart
+  sleep 1
+done
+echo mysqld failed to restart
+exit 1
