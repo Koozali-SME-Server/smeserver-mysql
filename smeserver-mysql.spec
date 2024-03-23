@@ -1,8 +1,8 @@
 Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
-%define version 2.7.0
-%define release 19
+%define version 11.0.0
+%define release 1
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -343,6 +343,9 @@ Koozali SME Server configuration package for mariadb105 RH SCLo
 
 
 %changelog
+* Sat Mar 23 2024 Brian Read <brianr@koozali.org>11.0.0-1.sme
+- Update Release and Version to base version and 1st release for SME11 [SME: 12518]
+
 * Sat Mar 23 2024 cvs2git.sh aka Brian Read <brianr@koozali.org> 2.7.0-19.sme
 - Roll up patches and move to git repo [SME: 12338]
 
