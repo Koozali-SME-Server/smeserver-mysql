@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 2
+%define release 3
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -343,6 +343,9 @@ Koozali SME Server configuration package for mariadb105 RH SCLo
 
 
 %changelog
+* Thu Apr 04 2024 Brian Read <brianr@koozali.org> 11.0.0-3.sme
+- Set license file to GPL2.0  [SME: 12577]
+
 * Sat Mar 23 2024 Brian Read <brianr@koozali.org>11.0.0-2.sme
 - Change Requires: e-smith- to Requires:smeserver-
 
