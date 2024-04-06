@@ -39,3 +39,15 @@ for db in $(mysql -BNre "show databases;"|egrep -vi "^information_schema$|^perfo
 do
     mysqldump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump || onfailure $db
 done
+# dump user privileges
+mysqldump --system=users --insert-ignore > /home/e-smith/db/mysql/system-users-priv.dump
+# dump plugins
+mysqldump --system=plugins --insert-ignore > /home/e-smith/db/mysql/system-plugins.dump
+# dump udfs
+mysqldump --system=udfs --insert-ignore > /home/e-smith/db/mysql/system-udfs.dump
+# dump servers
+mysqldump --system=servers --insert-ignore > /home/e-smith/db/mysql/system-servers.dump
+# dump stats
+mysqldump --system=stats --insert-ignore > /home/e-smith/db/mysql/system-stats.dump
+# dump timezones
+mysqldump --system=timezones --insert-ignore > /home/e-smith/db/mysql/system-timezones.dump
