@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 
 use esmith::Build::CreateLinks  qw(:all);
-my @versions = ( 101, 102, 103, 105);
 
 #--------------------------------------------------
 # pre-backup actions
@@ -11,12 +10,6 @@ my $event = "pre-backup";
 event_link("mysql-delete-dumped-tables", $event, "10");
 event_link("mysql-dump-tables", $event, "20");
 
-foreach ( @versions)
-{
-  event_link("mariadb$_-delete-dumped-tables", $event, "10");
-  event_link("mariadb$_-dump-tables", $event, "20");
-}
-
 #--------------------------------------------------
 # post-backup actions
 #--------------------------------------------------
@@ -25,25 +18,12 @@ $event = "post-backup";
 # Probably don't really need to do this
 event_link("mysql-delete-dumped-tables", $event, "10");
 
-foreach ( @versions)
-{
-  event_link("mariadb$_-delete-dumped-tables", $event, "10");
-}
-
-
 # When we do a restore, we want to start from a completely clean slate
 $event = "pre-restore";
 
 safe_symlink("stop", "root/etc/e-smith/events/$event/services2adjust/mariadb");
 # Needs to be after shutdown of mysqld
 event_link("mysql-delete-db-files", $event, "99");
-
-foreach ( @versions)
-{
-  safe_symlink("stop", "root$_/etc/e-smith/events/$event/services2adjust/mariadb$_-mariadb");
-  event_link("mariadb$_-delete-db-files", $event, "99");
-}
-
 
 #--------------------------------------------------
 # actions for bootstrap-console-save event
@@ -53,7 +33,7 @@ $event = "bootstrap-console-save";
 foreach (qw(
 	/etc/my.cnf
 	/root/.my.cnf
-	/var/lib/mysql/set.password
+	/var/lib/mysql.private/set.password
 	))
 {
     templates2events("$_", $event);
@@ -64,24 +44,12 @@ event_link("mysql-load-tables", $event, "40");
 templates2events("/etc/e-smith/sql/init/10mysql_upgrade", $event);
 
 
-foreach ( @versions)
-{
-  templates2events("/etc/opt/rh/rh-mariadb$_/my.cnf", $event);
-  templates2events("/etc/e-smith/sql/init$_/10mysql_upgrade", $event);
-  event_link("mariadb$_-load-tables", $event, "40");
-}
-
 #--------------------------------------------------
 # actions for timezone-update event
 #--------------------------------------------------
 $event = "timezone-update";
 
 safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/mariadb");
-
-foreach ( @versions)
-{
-  safe_symlink("restart", "root$_/etc/e-smith/events/$event/services2adjust/mariadb$_-mariadb");
-}
 
 #--------------------------------------------------
 # actions for smeserver-mysql-update event
@@ -91,7 +59,7 @@ $event = "smeserver-mysql-update";
 foreach (qw(
         /etc/my.cnf
         /root/.my.cnf
-        /var/lib/mysql/set.password
+        /var/lib/mysql.private/set.password
         ))
 {
     templates2events("$_", $event);
@@ -108,24 +76,5 @@ templates2events("/etc/rsyslog.conf", $event);
 # systemd-specific action mandatory for this package-update event
 event_link("systemd-reload", $event, "89");
 event_link("systemd-default", $event, "88");
-
-foreach ( @versions)
-{
-$event = "smeserver-mariadb$_-update";
-templates2events("/etc/my.cnf", $event);
-templates2events("/root/.my.cnf", $event);
-templates2events("/var/lib/mysql/set.password", $event);
-templates2events("/var/lib/mysql/set.password2", $event);
-templates2events("/etc/phpMyAdmin/config.inc.php", $event);
-templates2events("/etc/opt/rh/rh-mariadb$_/my.cnf", $event);
-safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/mariadb$_-mariadb");
-safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/mariadb$_-mysql.init");
-event_link("mariadb$_-load-tables", $event, "40");
-templates2events("/etc/e-smith/sql/init$_/10mysql_upgrade", $event);
-
-# systemd-specific action mandatory for this package-update event
-event_link("systemd-reload", $event, "89");
-event_link("systemd-default", $event, "88");
-}
 
 

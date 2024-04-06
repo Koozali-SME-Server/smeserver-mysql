@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 4
+%define release 5
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -66,7 +66,7 @@ fi
 %defattr(-,root,root)
 
 %changelog
-* Fri Apr 05 2024 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-4.sme
+* Fri Apr 05 2024 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-5.sme
 - tidy spec and sources for mariadb10.5 support [SME: 12524]
 - try to make compatible with higher version from mariadb repo [SME: 11856]
 - fix logrotate duplicate entry [SME: 12554]
