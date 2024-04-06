@@ -65,7 +65,7 @@ do
 	done 
 	exit $exit_value
     fi
-    echo "Waiting for mysql to startup" >&2
+    echo "Waiting for mariadb to startup" >&2
     sleep 2
 done
 

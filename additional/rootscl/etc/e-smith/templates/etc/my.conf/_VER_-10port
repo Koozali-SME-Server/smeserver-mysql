@@ -1,7 +1,0 @@
-{
-    $OUT = "";
-    my $localonly = ${'mariadb!!!VER!!!-mariadb'}{'LocalNetworkingOnly'} || "no";
-    # define port
-    my $port = ${'mariadb!!!VER!!!-mariadb'}{'port'} || "!!!PORT!!!";
-    $OUT .= ($localonly eq 'yes') ? "#no port as skip-networking\n" : "port=$port\n";
-}

@@ -1,14 +1,5 @@
 
 #innodb
-{# https://mariadb.com/kb/en/innodb-system-variables/#innodb_large_prefix 
-#default Off up to 10.2.1
-# removed in 10.3.1 and 10.6.0
-# keep it there up to 10.2.2
-}innodb_large_prefix=1
-{#https://mariadb.com/kb/en/innodb-system-variables/#innodb_file_format
-# default is antelope up to 10.2.1
-# keep it up to 10.2.2
-}innodb_file_format={ $mariadb{'innodb_file_format'}||'barracuda' }
 {# enabled is already the default
 }innodb_file_per_table={ $mariadb{'innodb_file_per_table'}||'1' }
 

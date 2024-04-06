@@ -2,13 +2,13 @@
 
 for i in $(seq 1 20);
 do
-  if [ -S !!!SOCKET!!! ]
+  if [ -S /var/lib/mysql/mysql.sock ]
   then
-      /usr/bin/mysql!!!VER!!! < /var/lib/mysql/set.password2
+      /usr/bin/mysql < /var/lib/mysql.private/set.password
       echo  "root password set"
       exit 0
   fi
-  echo waiting for rh-mariadb105-mariadb to start to set root password
+  echo waiting for mariadb to start to set root password
   sleep 1
 done
 echo  failed to set root password

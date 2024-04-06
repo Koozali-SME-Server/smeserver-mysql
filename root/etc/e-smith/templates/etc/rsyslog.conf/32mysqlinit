@@ -1,14 +1,4 @@
 # *-mysql.init
 :programname, isequal, "mysql.init"            /var/log/mysql.init/mysql.init.log
 & stop
-:programname, isequal, "mariadb105-mysql.init"            /var/log/mysql.init/mariadb105-mysql.init.log
-& stop
-:programname, isequal, "mariadb103-mysql.init"            /var/log/mysql.init/mariadb103-mysql.init.log
-& stop
-:programname, isequal, "mariadb102-mysql.init"            /var/log/mysql.init/mariadb102-mysql.init.log
-& stop
-:programname, isequal, "mariadb101-mysql.init"            /var/log/mysql.init/mariadb101-mysql.init.log
-& stop
-:programname, isequal, "mysql57-mysql.init"            /var/log/mysql.init/mysql57-mysql.init.log
-& stop
 

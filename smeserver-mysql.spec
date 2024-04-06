@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 3
+%define release 4
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -13,8 +13,8 @@ BuildRoot: /var/tmp/%{name}-%{version}-%{release}-buildroot
 BuildArchitectures: noarch
 Requires: mariadb-server
 # mariadb after 5.5 /in Centos 8 will package mysql_upgrade in mariadb-server-utils
-# Requires: /usr/bin/mysql_upgrade
-Requires: mariadb
+Requires: /usr/bin/mysql_upgrade
+Requires: mariadb > 10.5.0
 Requires: smeserver-base
 Requires: smeserver-lib >= 1.15.1-19
 Provides: e-smith-mysql = 2.7.0
@@ -31,232 +31,21 @@ mysql.
 %setup
 
 %build
-for ver in  101 102 103 105
-do
-mkdir root$ver
-done
 perl createlinks
-
-#########################################
-# full job to create all needed version
-#########################################
-declare -A versions=([101]="10.1" [102]="10.2" [103]="10.3" [105]="10.5")
-declare -A ports=([101]="3310" [102]="3311" [103]="3312" [105]="3313")
-
-for ver in  101 102 103 105
-do
-##TODO seen those 
-
-# default values from /etc/opt/rh/rh-mariadb101/my.cnf.d/mariadb-server.cnf
-basedir="/opt/rh/rh-mariadb$ver/root/usr"
-datadir="/var/opt/rh/rh-mariadb$ver/lib/mysql"
-socket="/var/lib/mysql/mariadb$ver.sock"
-logerror="/var//log/mariadb$ver/mariadb.log"
-#"/var/opt/rh/rh-mariadb$ver/log/mariadb/mariadb.log"
-pidfile="/var/run/rh-mariadb$ver-mariadb/mariadb.pid"
-vers="${versions[$ver]}"
-port="${ports[$ver]}"
-
-# we could choose to override /etc/opt/rh/rh-mariadb101/my.cnf or to force to share /etc/mariadb.log
-
-##Folders
-mkdir -p root$ver/etc/e-smith/sql/init$ver
-mkdir -p root$ver/home/e-smith/db/mariadb$ver
-mkdir -p root$ver/var/log/mariadb$ver
-#mkdir -p root$ver/home/e-smith/db/mysql/mariadb$ver
-mkdir -p root$ver/etc/e-smith/events/actions
-
-# create configuration db default
-#rm -rf etc/e-smith/db/configuration
-mkdir -p root$ver/etc/e-smith/db/configuration/{defaults/mariadb$ver-mariadb,defaults/mariadb$ver-mysql.init,migrate}
-echo "yes" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mariadb/LocalNetworkingOnly
-echo "enabled" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mariadb/status
-echo "service" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mariadb/type
-echo "enabled" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mysql.init/status
-echo "service" > root$ver/etc/e-smith/db/configuration/defaults/mariadb$ver-mysql.init/type
-
-# create templates.metadata
-## for /etc/e-smith/templates/etc/my.cnf/ => /etc/opt/rh/rh-mariadb$ver/my.cnf 
-mkdir -p root$ver/etc/e-smith/templates.metadata/etc/opt/rh/rh-mariadb$ver
-echo 'TEMPLATE_PATH="/etc/my.cnf"' > root$ver/etc/e-smith/templates.metadata/etc/opt/rh/rh-mariadb$ver/my.cnf
-
-# rename/move files
-
-#TODO /etc/e-smith/events
-mv root/etc/e-smith/events/smeserver-mariadb$ver-update root$ver/etc/e-smith/events/
-#bootstrap-console-save templates + actions
-mkdir -p root$ver/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/e-smith/sql/
-mkdir -p root$ver/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/opt/rh
-mv root/etc/e-smith/events/bootstrap-console-save/S40mariadb$ver-load-tables root$ver/etc/e-smith/events/bootstrap-console-save/
-mv root/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/e-smith/sql/init$ver root$ver/etc/e-smith/events/bootstrap-console-save//templates2expand/etc/e-smith/sql/
-mv root/etc/e-smith/events/bootstrap-console-save/templates2expand/etc/opt/rh/rh-mariadb$ver root$ver/etc/e-smith/events/bootstrap-console-save//templates2expand/etc/opt/rh/
-#pre-backup actions
-mkdir -p root$ver/etc/e-smith/events/pre-backup
-mv root/etc/e-smith/events/pre-backup/S*mariadb$ver-* root$ver/etc/e-smith/events/pre-backup/
-#post-backup actions
-mkdir -p root$ver/etc/e-smith/events/post-backup
-mv root/etc/e-smith/events/post-backup/S*mariadb$ver-* root$ver/etc/e-smith/events/post-backup/
-#pre-restore actions + service
-mkdir -p root$ver/etc/e-smith/events/pre-restore
-mv root/etc/e-smith/events/pre-restore/S*mariadb$ver-* root$ver/etc/e-smith/events/pre-restore/
-#timezone-update service
-
-
-#/etc/e-smith/events/actions
-#TODO
-cp rootscl/etc/e-smith/events/actions/mariadb_VER_-delete-db-files root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-db-files
-cp rootscl/etc/e-smith/events/actions/mariadb_VER_-delete-dumped-tables root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-dumped-tables
-cp rootscl/etc/e-smith/events/actions/mariadb_VER_-dump-tables root$ver/etc/e-smith/events/actions/mariadb${ver}-dump-tables
-cp rootscl/etc/e-smith/events/actions/mariadb_VER_-load-tables root$ver/etc/e-smith/events/actions/mariadb${ver}-load-tables
-sed -i root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-db-files \
-	-i root$ver/etc/e-smith/events/actions/mariadb${ver}-delete-dumped-tables \
-	-i root$ver/etc/e-smith/events/actions/mariadb${ver}-dump-tables \
-	-i root$ver/etc/e-smith/events/actions/mariadb${ver}-load-tables \
-	-e "s_!!!VER!!!_${ver}_g" \
-	-e "s_!!!SOCKET!!!_${socket}_g" 
-
-##metadata
-mkdir -p root$ver/etc/e-smith/templates.metadata/etc/e-smith/sql
-cp -a root/etc/e-smith/templates.metadata/etc/e-smith/sql/init root$ver/etc/e-smith/templates.metadata/etc/e-smith/sql/init$ver
-
-
-##templates
-mkdir -p root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver
-cp   root/etc/e-smith/templates/etc/e-smith/sql/init/* root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver
-sed -i root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver/00_restore_dumped_dbs  -i root$ver/etc/e-smith/templates/etc/e-smith/sql/init$ver/10mysql_upgrade \
-	-e "s_e-smith/db/mysql_e-smith/db/mariadb${ver}_g" \
-	-e "s_/usr/bin/mysql_/opt/rh/rh-mariadb${ver}/root/usr/bin/mysql_g" \
-	-e "s_mariadb.service_mariadb$ver-mariadb.service_" \
-	-e "s_/var/run/mariadb/mariadb.pid_${pidfile}_g" \
-	-e "s_mysqld_mariadb$ver-mariadb_g" \
-	-e "s_| mysql |_| /opt/rh/rh-mariadb${ver}/root/usr/bin/mysql --socket=$socket |_g" \
-	-e "s_mysql\_upgrade_mysql\_upgrade --socket=$socket _g"
-mkdir -p root$ver/etc/e-smith/templates/etc/my.cnf
-echo "
-[mariadb-$vers]" >  root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-05mariadb
-echo "basedir=$basedir" >  root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-07basedir
-echo "datadir=$datadir" > root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-08datadir
-#cp -a root/etc/e-smith/templates/etc/my.cnf/009socket root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-09socket
-#sed -i root$ver/etc/e-smith/templates/etc/my.cnf/$ver-09socket \
-#	-e "s_mariadb_{'mariadb${ver}\-mariadb'}_" \
-#	-e "s_^socket.*_socket=${socket}_"
-cp rootscl/etc/e-smith/templates/etc/my.conf/_VER_-09socket root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-09socket
-sed -i root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-09socket \
-        -e "s_!!!VER!!!_${ver}_g" \
-        -e "s_!!!PORT!!!_${port}_g"
-cp rootscl/etc/e-smith/templates/etc/my.conf/_VER_-10port root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-10port
-sed -i root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-10port \
-	-e "s_!!!VER!!!_${ver}_g" \
-	-e "s_!!!PORT!!!_${port}_g" 	
-
-cp -a root/etc/e-smith/templates/etc/my.cnf/014server_system_variables root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-14server_system_variables
-sed -i root$ver/etc/e-smith/templates/etc/my.cnf/$ver-14server_system_variables \
-	-e "s_mariadb_mariadb${ver}\-mariadb_"
-cp -a root/etc/e-smith/templates/etc/my.cnf/015logerror root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-15logerror
-sed -i root$ver/etc/e-smith/templates/etc/my.cnf/${ver}-15logerror \
-	-e "s_^log\_error.*_log\_error=${logerror}_"
-
-## /sbin/e-smith
-mkdir -p root$ver/sbin/e-smith/systemd
-#!!!VER!!!
-cp rootscl/sbin/e-smith/systemd/mariadb_VER_-initialize root$ver/sbin/e-smith/systemd/mariadb${ver}-initialize
-cp rootscl/sbin/e-smith/systemd/mariadb_VER_-mysql.init root$ver/sbin/e-smith/systemd/mariadb${ver}-mysql.init
-cp rootscl/sbin/e-smith/mariadb_VER_-preload root$ver/sbin/e-smith/mariadb${ver}-preload
-sed -i root$ver/sbin/e-smith/systemd/mariadb${ver}-initialize -i root$ver/sbin/e-smith/systemd/mariadb${ver}-mysql.init \
-	-i root$ver/sbin/e-smith/mariadb${ver}-preload \
-	-e "s_!!!VER!!!_${ver}_g" \
-	-e "s_!!!SOCKET!!!_${socket}_g"
-if [ $ver -ge  104 ]
-then
-  cp rootscl/sbin/e-smith/systemd/mariadb_VER_-post root$ver/sbin/e-smith/systemd/mariadb${ver}-post
-  sed -i root$ver/sbin/e-smith/systemd/mariadb${ver}-post -e "s_!!!VER!!!_${ver}_g" -e "s_!!!SOCKET!!!_${socket}_g"
-fi
-
-
-## logrotate 
-mkdir -p root$ver/etc/logrotate.d/
-sed rootscl/etc/logrotate.d/mariadb_VER_ -e "s_!!!VER!!!_${ver}_g" \
-	-e "s_!!!SOCKET!!!_${socket}_g" > root$ver/etc/logrotate.d/mariadb${ver}
-
-
-#systemd service
-mkdir -p  root$ver/usr/lib/systemd/system/
-### the upstream  service is called rh-mariadb$ver-mariadb.service
-# we use our own /usr/lib/systemd/system/mariadb$ver-mariadb
-cp rootscl/usr/lib/systemd/system/mariadb_VER_-mariadb.service root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service
-cp rootscl/usr/lib/systemd/system/mariadb_VER_-mysql.init.service root$ver/usr/lib/systemd/system/mariadb${ver}-mysql.init.service
-sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service -i root$ver/usr/lib/systemd/system/mariadb${ver}-mysql.init.service \
-	-e "s_!!!VER!!!_${ver}_g" 
-if [ $ver -ge  102 ]
-then
-  sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service \
-	-e "s/_safe//" \
-	-e "s/^ExecStopPost.*//";
-fi
-if [ $ver -ge  104 ]
-then
-  sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service \
-	-e 's_set.password$_set.password2_' 
-  sed -i root$ver/usr/lib/systemd/system/mariadb${ver}-mariadb.service \
-	 -e "/^#ExecStartPost=/ i ExecStartPost=\/sbin\/e-smith\/systemd\/mariadb${ver}-post"
-
-fi
-
-#### TODO check it is similar to rh one and functional !
-
-#/usr/bin to ease user
-mkdir root$ver/usr/bin
-for i in  mysql mysqlshow mysqladmin mysqldump mysqlimport mysqlbinlog
-do
-  echo "/opt/rh/rh-mariadb${ver}/root/usr/bin/$i --socket=/var/lib/mysql/mariadb${ver}.sock \"\$@\"" >root$ver/usr/bin/$i${ver}
-done
-
-#phpMyAdmin template
-mkdir -p root$ver/etc/e-smith/templates/etc/phpMyAdmin/config.inc.php/
-sed rootscl/etc/e-smith/templates/etc/phpMyAdmin/config.inc.php/11configMysql_VER_  \
-	-e "s_!!!SOCKET!!!_${socket}_g" \
-	-e "s_!!!VER!!!_${ver}_g" > root$ver/etc/e-smith/templates/etc/phpMyAdmin/config.inc.php/11configMysql${ver} 
-
-done
-
-###################################################
-# end of per version generation
-##################################################
-
 
 %install
 rm -rf $RPM_BUILD_ROOT
 (cd root   ; find . -depth -print | cpio -dump $RPM_BUILD_ROOT)
 /sbin/e-smith/genfilelist $RPM_BUILD_ROOT \
     --file "/sbin/e-smith/systemd/mariadb-initialize" 'attr(0554,root,root)' \
+    --file "/sbin/e-smith/systemd/mariadb-post" 'attr(0554,root,root)' \
     --file "/sbin/e-smith/systemd/mysql.init" 'attr(0554,root,root)' \
     --dir '/home/e-smith/db/mysql' 'attr(0750,root,root)' \
     --dir "/var/log/mariadb" 'attr(0750,mysql,mysql)' \
     --dir "/var/log/mysql.init" 'attr(0750,root,root)' \
+    --dir "/var/lib/mysql.private" 'attr(0751,mysql,mysql)' \
     > %{name}-%{version}-filelist
 echo "%doc COPYING"          >> %{name}-%{version}-filelist
-
-for ver in  101 102 103 105
-do
-#rm -rf $RPM_BUILD_ROOT
-(cd root$ver   ; find . -depth -print | cpio -dump $RPM_BUILD_ROOT)
-/sbin/e-smith/genfilelist root$ver/ \
-    --file "/sbin/e-smith/systemd/mariadb$ver-initialize" 'attr(0554,root,root)' \
-    --file "/sbin/e-smith/systemd/mariadb$ver-mysql.init" 'attr(0554,root,root)' \
-    --file "/sbin/e-smith/systemd/mariadb$ver-post" 'attr(0554,root,root)' \
-    --dir "/home/e-smith/db/mariadb$ver" 'attr(0750,root,root)' \
-    --dir "/var/log/mariadb$ver" 'attr(0750,mysql,mysql)' \
-    --file "/usr/bin/mysql$ver" 'attr(0554,root,root)' \
-    --file "/usr/bin/mysqladmin$ver" 'attr(0554,root,root)' \
-    --file "/usr/bin/mysqlbinlog$ver" 'attr(0554,root,root)' \
-    --file "/usr/bin/mysqldump$ver" 'attr(0554,root,root)' \
-    --file "/usr/bin/mysqlimport$ver" 'attr(0554,root,root)' \
-    --file "/usr/bin/mysqlshow$ver" 'attr(0554,root,root)' \
-| grep -vE '/home/e-smith/db/mysql$' \
-    > %{name}-%{version}-filelist-mariadb$ver
-echo "%doc COPYING"          >> %{name}-%{version}-filelist-mariadb$ver
-done
-
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -276,73 +65,12 @@ fi
 %files -f %{name}-%{version}-filelist
 %defattr(-,root,root)
 
-#----------------------------------------------------
-%package        -n smeserver-mariadb101
-Summary:        Koozali SME Server mariadb 10.1
-Group:          Database
-Requires:       rh-mariadb101
-Requires:       rh-mariadb101-mariadb
-Requires:       rh-mariadb101-mariadb-server
-BuildRequires:  e-smith-devtools >= 1.13.1-03
-
-%description    -n smeserver-mariadb101
-Koozali SME Server configuration package for mariadb101 RH SCLo
-
-%files -n smeserver-mariadb101 -f %{name}-%{version}-filelist-mariadb101
-%defattr(-,root,root)
-
-#----------------------------------------------------
-%package        -n smeserver-mariadb102
-Summary:        Koozali SME Server mariadb 10.2
-Group:          Database
-Requires:       rh-mariadb102
-Requires:       rh-mariadb102-mariadb
-Requires:       rh-mariadb102-mariadb-server
-BuildRequires:  e-smith-devtools >= 1.13.1-03
-
-%description    -n smeserver-mariadb102
-Koozali SME Server configuration package for mariadb102 RH SCLo
-
-%files -n smeserver-mariadb102 -f %{name}-%{version}-filelist-mariadb102
-%defattr(-,root,root)
-
-#----------------------------------------------------
-%package        -n smeserver-mariadb103
-Summary:        Koozali SME Server mariadb 10.3
-Group:          Database
-Requires:       rh-mariadb103
-Requires:       rh-mariadb103-mariadb
-Requires:       rh-mariadb103-mariadb-server
-Requires:       rh-mariadb103-mariadb-server-utils
-BuildRequires:  e-smith-devtools >= 1.13.1-03
-
-%description    -n smeserver-mariadb103
-Koozali SME Server configuration package for mariadb103 RH SCLo
-
-%files -n smeserver-mariadb103 -f %{name}-%{version}-filelist-mariadb103
-%defattr(-,root,root)
-
-#----------------------------------------------------
-%package        -n smeserver-mariadb105
-Summary:        Koozali SME Server mariadb 10.5
-Group:          Database
-Requires:       rh-mariadb105
-Requires:       rh-mariadb105-mariadb
-Requires:       rh-mariadb105-mariadb-server
-Requires:       rh-mariadb105-mariadb-server-utils
-BuildRequires:  e-smith-devtools >= 1.13.1-03
-Requires: 	smeserver-mysql >= 2.7.0-5
-%description    -n smeserver-mariadb105
-Koozali SME Server configuration package for mariadb105 RH SCLo
-
-%files -n smeserver-mariadb105 -f %{name}-%{version}-filelist-mariadb105
-%defattr(-,root,root)
-
-
-#----------------------------------------------------
-
-
 %changelog
+* Fri Apr 05 2024 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-4.sme
+- tidy spec and sources for mariadb10.5 support [SME: 12524]
+- try to make compatible with higher version from mariadb repo [SME: 11856]
+- fix logrotate duplicate entry [SME: 12554]
+ 
 * Thu Apr 04 2024 Brian Read <brianr@koozali.org> 11.0.0-3.sme
 - Set license file to GPL2.0  [SME: 12577]
 
