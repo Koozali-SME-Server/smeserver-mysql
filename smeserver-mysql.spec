@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 6
+%define release 7
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -66,6 +66,9 @@ fi
 %defattr(-,root,root)
 
 %changelog
+* Mon Apr 08 2024 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-7.sme
+- add missing mysql.private folder [SME: 11856]
+
 * Sat Apr 06 2024 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-6.sme
 - backup users priv, plugins, udfs, servers, stats, timezones [SME: 12591]
 
