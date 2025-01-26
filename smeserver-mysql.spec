@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 7
+%define release 8
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -17,6 +17,8 @@ Requires: /usr/bin/mysql_upgrade
 Requires: mariadb > 10.5.0
 Requires: smeserver-base
 Requires: smeserver-lib >= 1.15.1-19
+# daemontools bins in use 
+Requires: /usr/bin/setuidgid
 Provides: e-smith-mysql = 2.7.0
 Obsoletes: e-smith-mysql < 2.7.0
 BuildRequires: smeserver-devtools >= 1.13.1-03
@@ -66,6 +68,9 @@ fi
 %defattr(-,root,root)
 
 %changelog
+* Sun Jan 26 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-8.sme
+- prestart script requires daemontools bins [SME: 12566]
+
 * Mon Apr 08 2024 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-7.sme
 - add missing mysql.private folder [SME: 11856]
 
