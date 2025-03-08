@@ -1,0 +1,11 @@
+{
+# starting mariadb 10.6 , utf8 changes to utf8mb3 (as utf8 used to be an alias of utfmb3)
+# utf8 will soon be an alias of utf8mb4, and more and mroe db are demanding utf8mb4
+# so we are better default to it in 2025.
+# old-mode will force utf8mb3 for character-set-system
+}
+character-set-client-handshake = FALSE
+collation-server = utf8mb4_unicode_ci
+init-connect = 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci'
+character-set-server = utf8mb4
+old-mode = ''

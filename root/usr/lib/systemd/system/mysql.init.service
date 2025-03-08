@@ -11,8 +11,10 @@ IgnoreSIGPIPE=no
 KillMode=process
 GuessMainPID=no
 RemainAfterExit=yes
+ExecStart=-/usr/bin/mariadb-upgrade
 ExecStart=/sbin/e-smith/systemd/mysql.init start
 ExecStop=/sbin/e-smith/systemd/mysql.init stop
+SyslogIdentifier=mysql.init
 
 [Install]
 WantedBy=sme-server.target

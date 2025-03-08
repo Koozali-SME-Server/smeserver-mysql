@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 8
+%define release 9
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -13,8 +13,7 @@ BuildRoot: /var/tmp/%{name}-%{version}-%{release}-buildroot
 BuildArchitectures: noarch
 Requires: mariadb-server
 # mariadb after 5.5 /in Centos 8 will package mysql_upgrade in mariadb-server-utils
-Requires: /usr/bin/mysql_upgrade
-Requires: mariadb > 10.5.0
+Requires: /usr/bin/mariadb-upgrade
 Requires: smeserver-base
 Requires: smeserver-lib >= 1.15.1-19
 # daemontools bins in use 
@@ -22,6 +21,17 @@ Requires: /usr/bin/setuidgid
 Provides: e-smith-mysql = 2.7.0
 Obsoletes: e-smith-mysql < 2.7.0
 BuildRequires: smeserver-devtools >= 1.13.1-03
+# MariaDB from MariaDB repo
+Requires: mariadb-server >= 10.6.0
+Requires: mariadb >= 10.6.0
+Requires: mariadb-backup
+Requires: mariadb-connector-c >= 3.3.14
+Requires: mariadb-connector-c-config
+Requires: MariaDB-connect-engine
+Requires: MariaDB-gssapi-server
+Requires: MariaDB-compat
+Requires: mariadb-common ,mariadb-errmsg,mariadb-server-utils
+
 AutoReqProv: no
 
 %description
@@ -53,12 +63,6 @@ echo "%doc COPYING"          >> %{name}-%{version}-filelist
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-if [ $1 -gt 1 ] ; then
-  if [ -e /var/service/mariadb/run ] ; then
-        /usr/bin/sv d mariadb
-        /usr/bin/sv d mariadb/log
-  fi
-fi
 
 %post
 
@@ -68,6 +72,16 @@ fi
 %defattr(-,root,root)
 
 %changelog
+* Fri Mar 07 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-9.sme
+- upgrade to support mariadb 11.4 [SME: 12930]
+  move mariadb-upgrade to mysql.init unit, remove duplicate in 00_restore_dumped_dbs and 10mysql_upgrade
+  add our tmp.d
+  add post action dnf script
+  update mariadb.service.d/  content
+  set default to utfmb4
+- TODO mysql.dump filtering [SME: 12592]
+- TODO feedback plugin [SME: 12897]
+ 
 * Sun Jan 26 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-8.sme
 - prestart script requires daemontools bins [SME: 12566]
 

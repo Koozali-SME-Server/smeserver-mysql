@@ -2,7 +2,6 @@
 
 ( cat /home/e-smith/db/mysql/mysql.dump ;
   cat /var/lib/mysql.private/set.password ) | mysql || exit 1
-/usr/bin/mysql_upgrade
 /bin/rm /var/run/mariadb/mariadb.pid
 /usr/bin/systemctl restart mariadb.service
 for i in $(seq 1 20);

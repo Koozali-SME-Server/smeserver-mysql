@@ -41,7 +41,6 @@ foreach (qw(
 
 # Move all database dumps except for mysql.dump to sql/init
 event_link("mysql-load-tables", $event, "40");
-templates2events("/etc/e-smith/sql/init/10mysql_upgrade", $event);
 
 
 #--------------------------------------------------
@@ -70,7 +69,6 @@ safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/mysql.in
 safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/rsyslog");
 # Move all database dumps except for mysql.dump to sql/init
 event_link("mysql-load-tables", $event, "40");
-templates2events("/etc/e-smith/sql/init/10mysql_upgrade", $event);
 templates2events("/etc/rsyslog.conf", $event);
 
 # systemd-specific action mandatory for this package-update event
