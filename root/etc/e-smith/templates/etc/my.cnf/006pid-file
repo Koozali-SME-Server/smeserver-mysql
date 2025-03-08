@@ -1,1 +1,1 @@
-pid-file=/var/run/mariadb/mariadb.pid
+pid-file=/run/mariadb/mariadb.pid
