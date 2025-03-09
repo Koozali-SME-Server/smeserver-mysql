@@ -40,14 +40,14 @@ do
     mysqldump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump || onfailure $db
 done
 # dump user privileges
-mysqldump --system=users --insert-ignore > /home/e-smith/db/mysql/system-users-priv.dump
+mysqldump --system=users --insert-ignore > /home/e-smith/db/mysql/mysql.privileges.dump
 # dump plugins
-mysqldump --system=plugins --insert-ignore > /home/e-smith/db/mysql/system-plugins.dump
+mysqldump --system=plugins --insert-ignore > /home/e-smith/db/mysql/mysql.plugins.dump
 # dump udfs
-mysqldump --system=udfs --insert-ignore > /home/e-smith/db/mysql/system-udfs.dump
+mysqldump --system=udfs --insert-ignore > /home/e-smith/db/mysql/mysql.udfs.dump
 # dump servers
-mysqldump --system=servers --insert-ignore > /home/e-smith/db/mysql/system-servers.dump
+mysqldump --system=servers --insert-ignore > /home/e-smith/db/mysql/mysql.servers.dump
 # dump stats
-mysqldump --system=stats --insert-ignore > /home/e-smith/db/mysql/system-stats.dump
+mysqldump --system=stats --insert-ignore > /home/e-smith/db/mysql/mysql.stats.dump
 # dump timezones
-mysqldump --system=timezones --insert-ignore > /home/e-smith/db/mysql/system-timezones.dump
+mysqldump --system=timezones --insert-ignore > /home/e-smith/db/mysql/mysql.timezones.dump

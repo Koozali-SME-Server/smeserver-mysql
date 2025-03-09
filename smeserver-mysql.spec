@@ -22,14 +22,19 @@ Provides: e-smith-mysql = 2.7.0
 Obsoletes: e-smith-mysql < 2.7.0
 BuildRequires: smeserver-devtools >= 1.13.1-03
 # MariaDB from MariaDB repo
-Requires: mariadb-server >= 10.6.0
-Requires: mariadb >= 10.6.0
+Requires: mariadb-server >= 11.4.0
+Requires: mariadb >= 11.4.0
 Requires: mariadb-backup
-Requires: mariadb-connector-c >= 3.3.14
+Requires: mariadb-connector-c >= 3.4.4
 Requires: mariadb-connector-c-config
 Requires: MariaDB-connect-engine
+# provides some plugins we used to have
+Requires: MariaDB-test
+# el8 provides  /usr/lib64/mariadb/plugin/auth_gssapi.so in mariadb-gssapi-server
+# Mariadb provides /usr/lib64/mysql/plugin/auth_gssapi.so in MariaDB-gssapi-server
 Requires: MariaDB-gssapi-server
-Requires: MariaDB-compat
+# not available after 10.x
+#Requires: MariaDB-compat
 Requires: mariadb-common ,mariadb-errmsg,mariadb-server-utils
 
 AutoReqProv: no
@@ -74,13 +79,11 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Fri Mar 07 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-9.sme
 - upgrade to support mariadb 11.4 [SME: 12930]
-  move mariadb-upgrade to mysql.init unit, remove duplicate in 00_restore_dumped_dbs and 10mysql_upgrade
-  add our tmp.d
-  add post action dnf script
-  update mariadb.service.d/  content
-  set default to utfmb4
-- TODO mysql.dump filtering [SME: 12592]
-- TODO feedback plugin [SME: 12897]
+  move mariadb-upgrade to mysql.init unit 
+  remove duplicate in 00_restore_dumped_dbs and 10mysql_upgrade,
+  add a tmp.d for pid file, add post action dnf script
+  update mariadb.service.d/ content, set default to utfmb4
+- mysql.user table filtering [SME: 12592]
  
 * Sun Jan 26 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-8.sme
 - prestart script requires daemontools bins [SME: 12566]

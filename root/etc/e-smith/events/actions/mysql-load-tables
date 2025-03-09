@@ -10,7 +10,7 @@ fi
 /bin/rm -f /home/e-smith/db/mysql/performance_schema.dump
 if [ ! -f /var/lib/mysql/mysql/user.frm ]
 then
-    for db in $(ls /home/e-smith/db/mysql/*.dump 2> /dev/null | grep -v '/mysql.dump')
+    for db in $(ls /home/e-smith/db/mysql/*.dump 2> /dev/null | grep -v '/mysql.dump'| grep -v '/mysql.privileges.dump')
     do
         mv $db /etc/e-smith/sql/init/01_$(basename $db .dump).sql
     done

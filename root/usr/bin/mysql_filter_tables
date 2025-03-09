@@ -1,0 +1,830 @@
+#!/bin/env bash
+#
+# Filter the given tables out of a MySQL/MariaDB dump file.
+#
+#
+# The MIT License (MIT)
+#
+# Copyright © 2023 metaworx resonare rüegg, Martin Rüegg, Switzerland. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+# persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+# Software. All redistributions must retain an intact copy of this copyright notice and disclaimer.
+#
+# Distributions of all or part of the Software intended to be used by the recipients as they would use the unmodified
+# Software, containing modifications that substantially alter, remove, or disable functionality of the Software, outside
+# of the documented configuration mechanisms provided by the Software, shall be modified such that the Original Author's
+# bug reporting email addresses and urls are either replaced with the contact information of the parties responsible for
+# the changes, or removed entirely.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+mysql_filter_tables()
+{
+    local version='mysql_filter_tables v1.4.5' url='https://gist.github.com/martin-rueegg/e247d99cc7402a4f1456c059c5d050ac';
+
+    local help_condensed='
+
+Usage:
+  mysql_filter_tables [option] [exclude ...]   # Use % as wildcard (use "%%" for "%")
+  mysql_filter_tables info-option              # Print info and exit
+
+Options:
+  -s|--show           show generated sed command, rather than executing it
+  -i|--input file     read from file, rather than standard input
+  -o|--output file    write result to file, rather than standard output
+  -f|--force          overwrite output file, if exists
+  -u|-ui|--unzip      unzip input stream. Use with -i to read from file
+  -z|-zo|--zip        zip ouput stream. Use with -o to write to file
+  -g|-gi|--gunzip     gunzip input stream. Use with -i to read from file
+  -G|-go|--gzip       gzip ouput stream. Use with -o to write to file
+  -h                  show this help
+  -hh|--help          show more help
+  -V|--version        show version
+  -1|--one-line [-m]  show a one-liner that can be easily used in other scripts.
+  --copyright|--credits|--license|--changelog
+
+Use --help for more information.
+Use --credits for copyright, license, and credits.
+
+';
+
+    local help='
+
+Filter the given tables out of a MySQL/MariaDB dump file.
+
+Accepts a list of tables to exclude (case-insensitive).
+Eg. $ mysql_filter_tables "%session%" "action_log" "%_cache"
+
+removes both one-line inserts, as well as blocks like the following:
+# INSERT INTO `log` (`id`, `data`)
+# VALUES
+#  (1,'"'"'The log content'"'"'),
+#  (2,'"'"'The log content'"'"');
+
+
+Usage:
+  mysql_filter_tables [cmd-option] [exclude ...]   # Filter stream
+  mysql_filter_tables info-option                  # Print info and exit
+
+Arguments:
+
+  exclude:
+     - a plain table name
+     - a table name pattern, using % as wildcard (use "%%" for "%")
+
+If no argument is given, the stream is simply cat through.
+
+Options:
+
+  Command Options:
+  -s
+  --show
+    show generated sed command, rather than executing it.
+
+  -i
+  --input file
+    read from file, rather than standard input
+
+  -o
+  --output file
+    write result to file, rather than standard output
+
+  -f
+  --force
+    overwrite output file, if exists
+
+  -u
+  -ui
+  --unzip
+    unzip input stream. Use with -i to read from file
+
+  -z
+  -zo
+  --zip
+    zip ouput stream. Use with -o to write to file
+
+  -g
+  -gi
+  --gunzip
+    gunzip input stream. Use with -i to read from file
+
+  -G
+  -go
+  --gzip
+    gzip ouput stream. Use with -o to write to file
+
+  Info Options:
+  -h                  show usage help only
+  -hh|--help          show this help
+  -V|--version        show version
+  -1|--one-line [-m]  show a one-liner that can be easily used in other scripts.
+                      (Does not support any info options, except -V;
+                       add -m to get a minimal version, not supporting long options)
+  --copyright         show copyright, license, and credits
+  --credits           show copyright, license, and credits
+  --license           show copyright, license, and credits
+  --changelog         show change log
+
+
+Examples:
+
+  Show what will be filtered:
+  $ mysql_filter_tables --show log
+  $ mysql_filter_tables --show "%session%" "action_log" "%_cache"
+  $ mysql_filter_tables --show -- "-h"  # in case your table name is "-h"
+
+  Usage with plain SQL file:
+  $ mysql_filter_tables log <big.sql >clean.sql
+  $ cat big.sql | mysql_filter_tables log >clean.sql
+
+  Import plain SQL dump into mysql:
+  $ MYSQL_PWD=secret mysql_filter_tables -i big.sql "%_cache" | mysql -u user -D database
+
+  If source is compressed:
+  $ mysql_filter_tables -i big.sql.zip --unzip -o clean.sql "%session%" "%_cache"
+  $ mysql_filter_tables -i big.sql.gz --gunzip -o clean.sql "%session%" "%_cache"
+
+
+Installation:
+
+  1. Download file from github.com
+  $ wget '"$url"'/raw/mysql_filter_tables.sh
+
+  2.a) Source the file, and then use the function in the shell:
+  $ source mysql_filter_tables.sh
+  $ mysql_filter_tables --help
+
+  2.b) Mark the file executable und use it as script
+  $ chmod a+x mysql_filter_tables.sh
+  $ ./mysql_filter_tables.sh --help
+
+
+Dependencies:
+
+- `bash`
+- `sed`, `cat`
+- `zip`, `funzip`
+- `gzip`, `zcat`
+
+
+Note:
+
+This is experiential software. Use at your own risk. Double-check the output
+before importing it into a database. Keep the original as backup!
+
+It is recommended to use --ignore-table=tablename with mysqldump, rather than
+piping the output of mysqldump into mysql_filter_tables.
+
+Run with --credits for copyright, license, and credits.
+Run with -h for condensed usage help
+';
+
+    local credits='
+
+Copyright © 2023 metaworx resonare rüegg, Martin Rüegg, Switzerland. All Rights Reserved.
+
+Author:
+Martin Rüegg  https://stackoverflow.com/users/3102305/martin-r%c3%bcegg
+              '"$url"'
+
+Credits:
+
+feskr         https://stackoverflow.com/users/1180123/feskr
+              https://stackoverflow.com/a/51981034
+
+dgo           https://stackoverflow.com/users/508276/dgo
+              https://stackoverflow.com/a/53008691
+
+duzun         https://stackoverflow.com/users/1242333/duzun
+              https://stackoverflow.com/a/56988251
+
+julesezaar    https://stackoverflow.com/users/5418514/julesezaar
+              https://stackoverflow.com/a/56988251
+
+user5754163   https://stackoverflow.com/users/5754163/user5754163
+              https://stackoverflow.com/a/34642589/3102305
+
+The MIT License (MIT)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the “Software”), to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software. All redistributions must retain an intact copy of this copyright notice and disclaimer.
+
+Distributions of all or part of the Software intended to be used by the recipients as they would use the unmodified
+Software, containing modifications that substantially alter, remove, or disable functionality of the Software, outside
+of the documented configuration mechanisms provided by the Software, shall be modified such that the Original Author'"'"'s
+bug reporting email addresses and urls are either replaced with the contact information of the parties responsible for
+the changes, or removed entirely.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+';
+
+    local changelog='
+
+v1.3.7 2023-10-22
+    Initial public version
+
+v1.4.5 2023-10-23
+    - Enh: Add options: -s, -hh, --changelog
+    - Enh: for --one-line, add -m option for [minimal] version, and -d option, for debugging
+    - Enh: Print command by default. --show will _only_ print, while --quiet will _only_ execute.
+    - Enh: Show error for _any_ unsupported option. -- is now required, if the first table name starts with a dash
+    - Fix: script would fail if no table name, but input/output options where provided
+    - Fix: use funzip, rather than unzip
+v1.4.5-1 2025-03-08
+    - remove create table for the filter
+    - do not change existing create lines
+';
+
+    e()
+    {
+        echo "$@"
+    }
+
+    main()
+    {
+
+        if (( $# == 0 )); then
+           # no need for further argument detection. Just cat through ... :-)
+           e "# $version: \$ cat" >&2
+           cat
+        fi
+
+        err()
+        {
+                e;
+                e "$version";
+                e;
+                printf "ERROR: $@";
+                e "$help_condensed";
+        } >&2
+
+        not_implemented()
+        {
+            err "$@ not implemented"
+        }
+
+        case "$1" in
+        -h)
+            e;
+            e "$version";
+            e "$help_condensed";
+            return 1;
+            ;;
+
+        -hh | --help)
+            e;
+            e "$version";
+            e "$help";
+            return 1;
+            ;;
+
+        -V | --version)
+            e "$version";
+            return 1;
+            ;;
+
+        -1)
+            shift;
+            create_one_liner "$@";
+            return;
+            ;;
+
+        --license | --copyright | --credits)
+            e;
+            e "$version";
+            e "$credits";
+            return 1;
+            ;;
+
+        --changelog)
+            e;
+            e "$version";
+            e "$changelog";
+            return 1;
+            ;;
+        esac
+
+        local -a pre p post
+        local f i o ex="--quiet and --show are mutually exclusive!"
+        local -i x=0
+
+        while [ -n "$1" ];
+        do
+            case "$1" in
+
+            --)
+                shift;
+                break;
+                ;;
+
+            # check if the generated command should be printed, rather than executed
+            -s | --show)
+                (($x != 0)) && err "$ex" && return 5
+                # disable execution
+                x=-1;
+                # close file descriptors, if they've been opened already
+                [ -n "$i" ] && exec 4<&-;
+                [ -n "$o" ] && exec 5>&-;
+                ;;
+
+            -q | --quiet)
+                (($x != 0)) && err "$ex" && return 5
+                # disable command print
+                x=1;
+                ;;
+
+            -f | --force)
+                f=f;
+                ;;
+
+            # redirect input from a file
+            -i | --input)
+                shift;
+                # check if file exists
+                [ ! -r "$1" ] \
+                && err "File '$1' is not readable!" \
+                && return 3;
+                i="<'$1' ";
+                # redirect from file
+                exec 4<"$1";
+                ;;
+
+            # redirect output to file
+            -o | --output)
+                shift;
+                # check if file exists
+                [ -z "$f" -a -e "$1" ] \
+                && err " File '$1' already exists! Remove file or use --force." \
+                && return 4;
+                # redirect to file
+                o=">'$1'";
+                exec 5>"$1";
+                ;;
+
+            # redirect output to file
+            -u | -ui | --unzip)
+                exec 0<&0;
+                pre=(funzip);
+                ;;
+
+            # gunzip input
+            -g | -gi | --gunzip)
+                exec 0<&0;
+                pre=(zcat);
+                ;;
+
+            # gzip output
+            -G | -go | --gzip)
+                post=(gzip --to-stdout);
+                ;;
+
+            # zip output
+            -z | -zo | --zip)
+                post=(zip --quiet);
+                ;;
+
+            -*)
+                not_implemented "$1";
+                return 2;
+                ;;
+
+            *)
+                break;
+                ;;
+            esac;
+            shift;
+        done;
+
+        if(($#!=0)); then
+            # T => tables; t => table
+            local T t;
+            for t in "$@";
+            do
+
+                T="$T|$(e "$t"| sed -E '
+                # trim
+                    s/^[[:space:]]*//; s/[[:space:]]*$//;
+                # replace
+                # - "%" with "[^`]*", unless preceded by another "%"
+                    s/(^|[^%])%([^%]|$)/\1[^\`]\*\2/g;
+                # - "%%" with "%", and ...
+                    s/%%/%/g;
+                # - escape special characters "[", "]", "[", "|", "(", and ")" with "\"
+                    s/([][|()])/\\\1/g
+                ')";
+            done;
+            T=${T:1};
+
+            # For the given tables (or table patterns), do the following in the input stream:
+            p=(sed -E '
+            # 1. Delete all lines between and including
+            #    a) "LOCK TABLES `table` WRITE;" and "UNLOCK TABLES" (which is used if for multi-line inserts
+                    /LOCK TABLES `('"$T"')` WRITE;/,/^UNLOCK TABLES/d;
+            #    b) "INSERT INTO `table`", or
+            #       "REPLACE INTO `table`" that both _do not_ end with a semicolon [;]
+            #        and a line that _does_ end on ");"
+                    /^(INSERT|REPLACE)( (DELAYED|IGNORE))* INTO.*[)][^;]$/,/[)];$/d;
+            # 2. Delete all lines starting with
+            #    a) "DROP TABLE `table`"
+            #    b) "TRUNCATE TABLE `table`"
+            #    c) "INSERT INTO `table`"
+            #    d) "REPLACE INTO `table`"
+            #    e) "UPDATE `table`"
+                    /^((INSERT|REPLACE)( (DELAYED|IGNORE))* INTO|UPDATE( IGNORE)?|(DROP|TRUNCATE) TABLE( IF EXISTS)?) `('"$T"')`/d;
+            # 3. dumping "CREATE `table`"
+                    /^-- Table structure for table `'"$T"'`/,/^-- Dumping data for table `'"$T"'`/d;
+            # 4. Replaces regular "CREATE TABLE" with "CREATE TABLE IF NOT EXISTS"
+            #REM    s/^CREATE TABLE `/CREATE TABLE IF NOT EXISTS `/g
+            ');
+            # Note:
+            # - the above 'INSERT INTO' may be followed by one or both DELAYED and IGNORE keywords
+            # - the above 'DROP TABLE' may be followed by 'IF EXISTS'
+
+            # cleanup pattern if it's being printed
+            p[2]="$(e "${p[2]}"|sed -E '
+                    # remove leading space
+                    s/^[[:space:]]*//;
+
+                    # remove trailing spaces
+                    s/[[:space:]]*$//;
+
+                    # remove comments
+                    /^#/d;
+
+                    # remove empty lines
+                    /^$/d;
+                    '|sed '
+                    # join lines
+                    :a;/$/{N;s/\n//;ba}
+                ')";
+        elif ((${#pre[@]}>0)); then
+            p=("${pre[@]}");
+            pre=()
+        elif ((${#post[@]}>0)); then
+            p=("${post[@]}");
+            post=()
+        else
+            p=(cat);
+        fi;
+
+         # redirect input to fd 4, if no input file is used
+        [ -z "$i" ] && exec 4<&0;
+
+        # redirect fd 5 to output, if no output file is used
+        [ -z "$o" ] && exec 5>&1;
+
+        x()
+        {
+            (($x <= 0)) && e "# $version: \$ $@" >&2
+        }
+
+        f()
+        {
+            # filter out known errors that are irrelevant
+            grep -v 'funzip error: invalid compressed data--length error' >&2
+        }
+
+        case $(( ((${#pre[@]} != 0)) + (2*((${#post[@]} != 0))))) in
+        0)
+            x "${p[@]}" "$i"$o
+            (($x >= 0)) && "${p[@]}" <&4 >&5 2> >(f);
+            ;;
+        1)
+            x "${pre[@]}" '<&4|' "${p[@]} $o"
+            (($x >= 0)) && "${pre[@]}" <&4 2> >(f) | "${p[@]}" >&5 2> >(f);
+            ;;
+        2)
+            x "${p[@]}" "$i"'|' "${post[@]}" $o
+            (($x >= 0)) && "${p[@]}" <&4 2> >(f) | "${post[@]}" >&5 2> >(f);
+            ;;
+        3)
+            x "${pre[@]}" "$i"'|' "${p[@]}" '|' "${post[@]}" $o
+            (($x >= 0)) && "${pre[@]}" <&4 2> >(f) | "${p[@]}" | "${post[@]}" >&5 2> >(f);
+            ;;
+        esac
+
+        # close file descriptors
+        exec 4<&-;
+        exec 5>&-;
+    } # main
+
+    create_one_liner()
+    {
+        local regex_cleanup_help_and_credits='
+        ## regex_cleanup_help_and_credits
+
+        # remove help, help_condensed, credits variables
+        /^[[:space:]]*local (help|help_condensed|credits|changelog)=/,/^'"'"';$/d;
+
+        # remove "help" from err calls
+        s/^[[:space:]]*e "[$]help_condensed";?/e;e;e "Usage:";e " See $url";e;/;
+
+        # replace "$help_condensed" variable
+        #/^[[:space:]]*local (help_condensed)=/,/^'"'"';$/c\
+        #local help_condensed='"'"'\n\nUsage:\n  See '"$url"'\n\n'"'"';
+
+        '
+
+        local regex_remove_condensed='
+        ## regex_remove_condensed
+
+        # remove function "create_one_liner"
+        /^    function (create_one_liner)/,/^    };$/d;
+
+        # and it"s corresponding call
+        s/^([[:space:]]*)create_one_liner[[:space:]]+(.*);?$/\1not_implemented -1 \2/
+
+        '
+
+        local regex_cleanup_regex='
+        ## regex_cleanup_regex
+
+        # for all lines between the beginning of the sed call and the end of its argument ...
+        /[ ()|]sed[[:space:]]+[^'"'"']*'"'"'/{
+            :join-line-and-strip-comment
+
+            # join with next line
+            N;
+
+            # check if newline is followed by quote, which would mark the last line
+            # in this case, place the newline _outside_ of the closing quote
+            s/(\n[[:space:]]*)('"'"')/\2>REGEX<\1/;
+
+            # if found, got to :last-line
+            t last-line;
+
+            :strip-comment
+
+            # strip leading spaces and comments (note: "#n" is _not_ a comment!)
+            s/;?\n[[:space:]]*#($|[^n].*|n[ ;])//;
+
+            # if found, do it again (from :join-line-and-strip-comment)
+            t join-line-and-strip-comment;
+
+            # strip trailing spaces
+            s/[[:space:]]+$//;
+
+            # strip leading spaces
+            s/;?\n[[:space:]]*(.*)$/;\1/;
+
+            # if found (which should always happen), do it again (from :join-line-and-strip-comment)
+            t join-line-and-strip-comment;
+
+            :last-line
+
+            # prepend opening quote with >REGEX< and place it on new line
+            s/([ ()|]sed[[:space:]]+[^'"'"']*)'"'"';?/\1\n>REGEX<'"'"'/;
+
+            # save pattern space to memory
+            h;
+
+            #l; # prints the pattern space for debbugging
+
+            # remove last line
+            s/(.*)\n[^\n]*$/\1/
+
+            #l; # prints the pattern space for debbugging
+
+            # disable default output to avoid duplicate lines
+            #n
+
+            # print the entire pattern space (including the newlines)
+            p;
+
+            # reload the saved pattern space
+            g
+
+            # this time, remove everythign _but_ the last line
+            s/.*(\n[^\n]*)$/\1/
+
+            #l; # prints the pattern space for debbugging
+
+            # start over with the last line, discarding the first, now empty, line
+            D;
+        }
+
+        '
+
+        local regex_remove_main_and_whitespaces='
+        ## regex_remove_main_and_whitespaces
+
+        # for all lines, that do not start with the >REGEX< pattern
+        /^>REGEX</!{
+
+            # un-wrap unneccesary main()
+            /^[[:space:]]*function main [(][)]/,+1d;
+            /^[[:space:]]*main "[$]@"/,/[}]/d;
+
+            # remove "function" keyword
+            s/^([[:space:]]*)function ([_[:alnum:]]+) [(][)]/\1\2()/g;
+
+            # remove regex cleaning
+            #/^[[:space:]]*p\[2\]=/,/'"'"'\)";/d
+
+            # rename version variable
+            s/([ $])version([^_[:alnum:]])/\1v\2/g;
+
+            # rename not_implemented function
+            s/([^_[:alnum:]])not_implemented([^_[:alnum:]])/\1ni\2/g;
+
+            # rename not_implemented function
+            s/gzip --to-stdout/gzip -c/;
+            s/zip --quiet/zip -q/;
+
+            # remove spaces around case options
+            s/[[:space:]]*(\|)[[:space:]]*-/\1-/g;
+
+            # remove spaces around "&&", "||", and some comparison operators
+            s/[[:space:]]*(\||&&|\|\||==|!=|<=|>=)[[:space:]]*/\1/g;
+
+            # remove options --license, --changelog, -1, -h, and --help
+            /^[[:space:]]*(--license|--changelog|-1|-h|--help)/,/^[[:space:]]*;;$/d;
+
+            # remove spaces following braces
+            s/([()]) +/\1/g;
+
+            # remove spaces following redirections
+            s/([<>]) +([^<>])/\1\2/g;
+
+            # remove before opening brackets
+            s/[[:space:]]*[(]/(/g;
+
+            # remove some other non-essential stuff
+            s/--quiet and --show are mutually exclusive!/-q or -s ?!/
+
+        }
+        '
+
+        local regex_join_lines='
+        ## regex_join_lines
+
+        # join lines, except the last one
+        :a;/$/{$!{N;
+        # remove the newline where the previous line ends on a single quote or closing bracket
+        s/(['"'"')])[[:space:]]*\n[[:space:]]*/\1/; ty;
+        # replace the newline using a space, where the previous line ends on an opening curly bracket
+        s/[{][[:space:]]*\n[[:space:]]*/{ /; ty;
+        # replace the newline using a space, where the previous line ends on a continuation-backslash
+        s/[\]\n[[:space:]]*/ /; ty;
+        # join all other lines using a ;
+        s/[;]?\n[[:space:]]*/;/; ba;
+        :y;ba}};
+        ';
+
+        local regex_cleanup_joined_lines='
+        # regex_cleanup_joined_lines
+
+        # cleanup function opening
+        #s/[{];/{ /g;
+
+        # cleanup case ;; esac
+        s/( |([)]))in ;/\2 in /g
+        s/;;;?;?/; ;; /g;
+        s/; ;; esac;/;esac;/g;
+
+        # cleanup do|then
+        s/; ?(while|do|then|else|elif);/;\1 /g;
+
+        # remove semicolon after case bracket
+        s/([*]|--|--?[[:alnum:]]+)[)];/\1)/g;
+
+        # remove REGEX escaping
+        s/;>REGEX<'"'"'|'"'"'>REGEX<;/'"'"'/g
+
+        ';
+
+        local regex_minimal='
+        # regex_minimal
+
+        # remove long options if there is a short one
+        s/ -([[:alnum:]])(\|-[-[:alnum:]]+)*\)/ -\1)/g;
+
+        # remove --show
+        s/local -i x=0;//
+        s/\)x [^;]+;/)/g
+        s/\)\(\(\$x>=0\)\)&&/)/g
+        s/ ex="-q or -s \?!";/;/
+        s/ -s\)(([^;]+|;[^;]+)+);;//
+        s/ -q\)(([^;]+|;[^;]+)+);;/ -q) ;;/
+        #l;
+        #s/;/;\n/g
+        #l;
+        s/;p\[2\]=".*'"'"'\)";/;/
+        #l
+        #s/\n//g
+
+        # remove some other non-essential stuff
+        s/ already exists! Remove file or use --force\./!!/
+        s/ is not readable!/?!/
+
+        ';
+
+
+        local regex_version_condensed='
+        ## regex_version_condensed
+
+        # rename the function
+        s/mysql_filter_tables/mysql_filter_tables_condensed/g;
+
+        # append "[condensed]" to the version information
+        s/(local version='"'"'[^'"'"']+)/\1 [condensed]/
+
+        '
+
+        local regex_version_oneliner='
+        ## regex_version_oneliner
+
+        # rename the function
+        s/mysql_filter_tables/mysql_filter_tables_one/g;
+
+        /^[[:space:]]*local version=/{
+            # append "[one-liner]" to the version information
+            s/(local version='"'"'[^'"'"']+)/\1 [one-liner]/
+            ta
+            b
+            :a;
+            n
+            ba
+        }
+
+        '
+
+        # applied to one-liner
+        local regex_version_minimal='
+        ## regex_version_minimal
+
+        # rename the function
+        s/mysql_filter_tables_one/mysql_filter_tables_minimal/g;
+
+        # append "[minimal]" to the version information
+        s/(local v='"'"'[^[]+)([^'"'"']+)?/\1[minimal]/
+
+        '
+
+        local -a R=(
+        "$regex_remove_condensed"
+        "$regex_cleanup_help_and_credits"
+        "$regex_cleanup_regex"
+        "$regex_version_oneliner"
+        "$regex_remove_main_and_whitespaces"
+        "$regex_join_lines"
+        "$regex_cleanup_joined_lines"
+        );
+
+        if [ "$1" = '-c' ]; then
+            shift
+
+            R=(
+            "$regex_remove_condensed"
+            "$regex_cleanup_regex"
+            "$regex_version_condensed"
+            );
+        elif [ "$1" = '-m' ]; then
+            shift
+
+            R=(
+                "${R[@]}"
+                "$regex_version_minimal"
+                "$regex_minimal"
+            )
+        fi
+
+        local r d="$( declare -f mysql_filter_tables )";
+
+        for r in "${R[@]}"; do
+            d="$(e "$d" | sed -E "$r")";
+            [ "$1" = '-d' ] && ( e "regex:"; e "$r"; e "$d"; e;) >&2
+        done;
+
+        e "$d";
+    }; # create_one_liner
+
+    main "$@"
+}; # mysql_filter_tables
+
+# check if the file is sourced
+(return 2>/dev/null)
+if [ "$?" -eq "0" ]
+then
+    echo "mysql_filter_tables installed."
+else
+    #otherwise, just run the function!
+    mysql_filter_tables "$@"
+fi

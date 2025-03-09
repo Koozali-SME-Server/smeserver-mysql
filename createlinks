@@ -2,6 +2,14 @@
 
 use esmith::Build::CreateLinks  qw(:all);
 
+# we add few link fromn old mysql things to mariadb things
+safe_symlink("/usr/bin/mariadb-dump","/usr/bin/mysqldump");
+safe_symlink("/usr/bin/mariadb-dumpslow","/usr/bin/mysqldumpslow");
+safe_symlink("/usr/bin/mariadb-check","/usr/bin/mysqlcheck");
+safe_symlink("/usr/bin/mariadb-admin","/usr/bin/mysqladmin");
+safe_symlink("/usr/bin/mariadb-show","/usr/bin/mysqlshow");
+safe_symlink("/usr/bin/mariadb-upgrade","/usr/bin/mysql_upgrade");
+
 #--------------------------------------------------
 # pre-backup actions
 #--------------------------------------------------

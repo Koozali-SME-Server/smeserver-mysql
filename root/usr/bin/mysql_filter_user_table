@@ -1,0 +1,2 @@
+#!/bin/env bash
+sed -E '/LOCK TABLES `(user)` WRITE;/,/^UNLOCK TABLES/d;/^(INSERT|REPLACE)( (DELAYED|IGNORE))* INTO.*[)][^;]$/,/[)];$/d;/^((INSERT|REPLACE)( (DELAYED|IGNORE))* INTO|UPDATE( IGNORE)?|(DROP|TRUNCATE) TABLE( IF EXISTS)?) `(user)`/d;/^-- Table structure for table `user`/,/^-- Dumping data for table `user`/d;' $1

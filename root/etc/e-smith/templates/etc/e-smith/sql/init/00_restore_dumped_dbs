@@ -1,6 +1,9 @@
 #! /bin/sh
 
-( cat /home/e-smith/db/mysql/mysql.dump ;
+# we need to filter out mysql.user table from older mariadb and from mysql 
+# in SME10 we added for migration creation of mysql.privileges.dump with mariadb 10.5 and newer syntax
+( /usr/bin/mysql_filter_user_table /home/e-smith/db/mysql/mysql.dump ;
+  [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] && cat /home/e-smith/db/mysql/mysql.privileges.dump;
   cat /var/lib/mysql.private/set.password ) | mysql || exit 1
 /bin/rm /run/mariadb/mariadb.pid
 /usr/bin/systemctl restart mariadb.service
@@ -9,6 +12,7 @@ do
   if [ -f /run/mariadb/mariadb.pid ]
   then
       /bin/rm /home/e-smith/db/mysql/mysql.dump
+      [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] /bin/rm /home/e-smith/db/mysql/mysql.privileges.dump
       exit 0
   fi
   echo waiting for mysqld to restart
