@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 9
+%define release 10
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -58,7 +58,7 @@ rm -rf $RPM_BUILD_ROOT
     --file "/sbin/e-smith/systemd/mariadb-post" 'attr(0554,root,root)' \
     --file "/sbin/e-smith/systemd/mysql.init" 'attr(0554,root,root)' \
     --file "/usr/bin/mysql_filter_tables" 'attr(0554,root,root)' \
-    --file "/usr/bin/mysql_filter_user_table" 'attr(0554,root,root)' \   
+    --file "/usr/bin/mysql_filter_user_table" 'attr(0554,root,root)' \
     --dir '/home/e-smith/db/mysql' 'attr(0750,root,root)' \
     --dir "/var/log/mariadb" 'attr(0750,mysql,mysql)' \
     --dir "/var/log/mysql.init" 'attr(0750,root,root)' \
@@ -79,7 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
-* Fri Mar 07 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-9.sme
+* Fri Mar 07 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-10.sme
 - upgrade to support mariadb 11.4 [SME: 12930]
   move mariadb-upgrade to mysql.init unit 
   remove duplicate in 00_restore_dumped_dbs and 10mysql_upgrade,
