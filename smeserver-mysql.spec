@@ -57,6 +57,8 @@ rm -rf $RPM_BUILD_ROOT
     --file "/sbin/e-smith/systemd/mariadb-initialize" 'attr(0554,root,root)' \
     --file "/sbin/e-smith/systemd/mariadb-post" 'attr(0554,root,root)' \
     --file "/sbin/e-smith/systemd/mysql.init" 'attr(0554,root,root)' \
+    --file "/usr/bin/mysql_filter_tables" 'attr(0554,root,root)' \
+    --file "/usr/bin/mysql_filter_user_table" 'attr(0554,root,root)' \   
     --dir '/home/e-smith/db/mysql' 'attr(0750,root,root)' \
     --dir "/var/log/mariadb" 'attr(0750,mysql,mysql)' \
     --dir "/var/log/mysql.init" 'attr(0750,root,root)' \
