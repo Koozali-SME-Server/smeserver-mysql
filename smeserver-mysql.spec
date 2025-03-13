@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 10
+%define release 11
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -79,7 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
-* Fri Mar 07 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-10.sme
+* Fri Mar 07 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-11.sme
 - upgrade to support mariadb 11.4 [SME: 12930]
   move mariadb-upgrade to mysql.init unit 
   remove duplicate in 00_restore_dumped_dbs and 10mysql_upgrade,
