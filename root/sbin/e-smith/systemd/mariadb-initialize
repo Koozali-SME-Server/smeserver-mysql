@@ -3,9 +3,13 @@
 exec 2>&1
 if [ ! -f /var/lib/mysql/mysql/user.frm ]
 then
-    setuidgid mysql sh /usr/bin/mysql_install_db --rpm --skip-test-db --user=mysql --group=mysql
+    setuidgid mysql sh /usr/bin/mariadb-install-db --rpm --skip-test-db --user=mysql --group=mysql
     if [ -f /home/e-smith/db/mysql/mysql.dump ]
     then
         /sbin/e-smith/expand-template /etc/e-smith/sql/init/00_restore_dumped_dbs
     fi
 fi
+
+# set root password and access to socket passwordless
+/usr/sbin/mariadbd --socket=/var/lib/mysql/mysql.sock --bootstrap --user=mysql < /var/lib/mysql.private/set.password
+exit 0

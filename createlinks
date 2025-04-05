@@ -15,7 +15,8 @@ safe_symlink("/usr/bin/mariadb-binlog","root/usr/bin/mysqlbinlog");
 safe_symlink("/usr/bin/mariadb-convert-table-format","root/usr/bin/mysql_convert_table_format");
 safe_symlink("/usr/bin/mariadb-find-rows","root/usr/bin/mysql_find_rows");
 safe_symlink("/usr/bin/mariadb-fix-extensions","root/usr/bin/mysql_fix_extensions");
-
+safe_symlink("/usr/bin/mariadb-install-db","root/usr/bin/mysql_install_db");
+safe_symlink("/usr/bin/mariadb-embedded","root/usr/bin/mysql_embedded");
 
 #--------------------------------------------------
 # pre-backup actions
