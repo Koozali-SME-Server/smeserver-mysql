@@ -2,9 +2,11 @@
 
 # we need to filter out mysql.user table from older mariadb and from mysql 
 # in SME10 we added for migration creation of mysql.privileges.dump with mariadb 10.5 and newer syntax
-( /usr/bin/mysql_filter_user_table /home/e-smith/db/mysql/mysql.dump ;
+# non RH ocmpiled version of mariadb limits MyISAM index to 1000 bytes, newer mysql db use Aria as engine for those tables
+( /usr/bin/mysql_filter_user_table /home/e-smith/db/mysql/mysql.dump |sed -e 's/ENGINE=MyISAM/ENGINE=Aria/';
   [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] && cat /home/e-smith/db/mysql/mysql.privileges.dump;
   cat /var/lib/mysql.private/set.password ) | mysql || exit 1
+/usr/bin/mysql_upgrade
 /bin/rm /run/mariadb/mariadb.pid
 /usr/bin/systemctl restart mariadb.service
 for i in $(seq 1 20);

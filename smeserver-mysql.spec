@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 12
+%define release 13
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -79,6 +79,10 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
+* Sun Apr 06 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-13.sme
+- fix Specified key was too long with older mysql db tables [SME: 12980]
+  added back mysql_upgrade in 00_restore_dumped_dbs
+ 
 * Fri Apr 04 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-12.sme
 - restore root user, pasword and socket login [SME: 12978]
 
