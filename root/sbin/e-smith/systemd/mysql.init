@@ -46,13 +46,13 @@ do
 	    F=$(basename $link | sed 's/S\?[0-9][0-9]_\?//')
 	    case $F in
 		*.sql)
-                action "Loading $F into mysql" perl -e '
+                action "Loading $F into mariadb" perl -e '
                      open (STDERR, "|/usr/bin/logger -p local1.info -t mysql.init");
                      open (STDOUT, ">&STDERR");
-                     exec "/usr/bin/mysql";' < $link && /bin/rm $link
+                     exec "/usr/bin/mariadb";' < $link && /bin/rm $link
                 ;;
 		*)
-                action "Loading $F into mysql" perl -e '
+                action "Loading $F into mariadb" perl -e '
                      open (STDERR, "|/usr/bin/logger -p local1.info -t mysql.init");
                      open (STDOUT, ">&STDERR");
                      exec shift; ' $link && /bin/rm $link

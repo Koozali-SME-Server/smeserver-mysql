@@ -41,8 +41,8 @@ if ( ($runlevel ne 'multi-user.target' &&  $runlevel ne "sme-server.target") || 
 	{
 	    # Find our mysqld binary
 	    my $mysqld = "/usr/libexec/mysqld";
-	    if (-f "/usr/sbin/mysqld") {
-		$mysqld = "/usr/sbin/mysqld";
+	    if (-f "/usr/sbin/mariadbd") {
+		$mysqld = "/usr/sbin/mariadbd";
 	    }
 	    # Hard-code user, since it is set in mysqld_safe currently.
 	    # See http://bugs.mysql.com/2163

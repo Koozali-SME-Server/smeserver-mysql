@@ -18,12 +18,12 @@ onfailure () {
 	echo $message | /usr/bin/mail -s "error on backup of $db MariaDB database" admin
     fi
     message="$message \nThere was an error trying to dump database $db, please check for table errors in this db. Forcing a backup of the corrupted DB."
-    mysqldump --force --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db"-failed.dump || message="$message \nFailed to force backup of corrupted db $db as $db-failed.dump" >&2
+    mariadb-dump --force --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db"-failed.dump || message="$message \nFailed to force backup of corrupted db $db as $db-failed.dump" >&2
     if [ "$fixtables" = "enabled" ]; then
 	repair="failure"
 	message="$message \nTrying to auto-repair the db and do a backup after..."
-	mysqlcheck -s --auto-repair -c "$db"  &&  \
-   	mysqldump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump && repair="success"
+	mariadb-check -s --auto-repair -c "$db"  &&  \
+   	mariadb-dump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump && repair="success"
 	message="$message \n => $repair"
     fi
     echo $message
@@ -37,17 +37,18 @@ then
 fi
 for db in $(mysql -BNre "show databases;"|egrep -vi "^information_schema$|^performance_schema$") 
 do
-    mysqldump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump || onfailure $db
+    mariadb-dump --ignore-table=mysql.event --single-transaction --add-drop-table -QB "$db" -r /home/e-smith/db/mysql/"$db".dump || onfailure $db
 done
+# double usage as already in mysql.dump
 # dump user privileges
-mysqldump --system=users --insert-ignore > /home/e-smith/db/mysql/mysql.privileges.dump
+#mariadb-dump --system=users --insert-ignore > /home/e-smith/db/mysql/mysql.privileges.dump
 # dump plugins
-mysqldump --system=plugins --insert-ignore > /home/e-smith/db/mysql/mysql.plugins.dump
+#mariadb-dump --system=plugins --insert-ignore > /home/e-smith/db/mysql/mysql.plugins.dump
 # dump udfs
-mysqldump --system=udfs --insert-ignore > /home/e-smith/db/mysql/mysql.udfs.dump
+#mariadb-dump --system=udfs --insert-ignore > /home/e-smith/db/mysql/mysql.udfs.dump
 # dump servers
-mysqldump --system=servers --insert-ignore > /home/e-smith/db/mysql/mysql.servers.dump
+#mariadb-dump --system=servers --insert-ignore > /home/e-smith/db/mysql/mysql.servers.dump
 # dump stats
-mysqldump --system=stats --insert-ignore > /home/e-smith/db/mysql/mysql.stats.dump
+#mariadb-dump --system=stats --insert-ignore > /home/e-smith/db/mysql/mysql.stats.dump
 # dump timezones
-mysqldump --system=timezones --insert-ignore > /home/e-smith/db/mysql/mysql.timezones.dump
+#mariadb-dump --system=timezones --insert-ignore > /home/e-smith/db/mysql/mysql.timezones.dump

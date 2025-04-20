@@ -5,8 +5,8 @@
 # non RH ocmpiled version of mariadb limits MyISAM index to 1000 bytes, newer mysql db use Aria as engine for those tables
 ( /usr/bin/mysql_filter_user_table /home/e-smith/db/mysql/mysql.dump |sed -e 's/ENGINE=MyISAM/ENGINE=Aria/';
   [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] && cat /home/e-smith/db/mysql/mysql.privileges.dump;
-  cat /var/lib/mysql.private/set.password ) | mysql || exit 1
-/usr/bin/mysql_upgrade
+  cat /var/lib/mysql.private/set.password ) | mariadb || exit 1
+/usr/bin/mariadb-upgrade
 /bin/rm /run/mariadb/mariadb.pid
 /usr/bin/systemctl restart mariadb.service
 for i in $(seq 1 20);
@@ -17,8 +17,8 @@ do
       [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] /bin/rm /home/e-smith/db/mysql/mysql.privileges.dump
       exit 0
   fi
-  echo waiting for mysqld to restart
+  echo waiting for mariadb to restart
   sleep 1
 done
-echo mysqld failed to restart
+echo mariadb failed to restart
 exit 1

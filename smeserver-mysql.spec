@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 13
+%define release 14
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -79,6 +79,12 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
+* Sun Apr 20 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-14.sme
+- set innodb_page_size=64k [SME: 12982]
+  breaking change, needs backup and restore of mariadb databases
+- convert mysql* bins call to mariadb-* [SME: 12983]
+- revert [SME: 12591]
+
 * Sun Apr 06 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-13.sme
 - fix Specified key was too long with older mysql db tables [SME: 12980]
   added back mysql_upgrade in 00_restore_dumped_dbs
