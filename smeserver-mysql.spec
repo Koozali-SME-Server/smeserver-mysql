@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 14
+%define release 15
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -79,7 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
-* Sun Apr 20 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-14.sme
+* Sun Apr 20 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-15.sme
 - set innodb_page_size=64k [SME: 12982]
   breaking change, needs backup and restore of mariadb databases
 - convert mysql* bins call to mariadb-* [SME: 12983]

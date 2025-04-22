@@ -14,7 +14,7 @@ do
   if [ -f /run/mariadb/mariadb.pid ]
   then
       /bin/rm /home/e-smith/db/mysql/mysql.dump
-      [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] /bin/rm /home/e-smith/db/mysql/mysql.privileges.dump
+      [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] && /bin/rm /home/e-smith/db/mysql/mysql.privileges.dump
       exit 0
   fi
   echo waiting for mariadb to restart
