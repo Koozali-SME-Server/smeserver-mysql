@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 15
+%define release 16
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -36,6 +36,7 @@ Requires: MariaDB-gssapi-server
 # not available after 10.x
 #Requires: MariaDB-compat
 Requires: mariadb-common ,mariadb-errmsg,mariadb-server-utils
+Requires: MariaDB-client-compat
 
 AutoReqProv: no
 
@@ -79,6 +80,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
+* Wed May 14 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-16.sme
+- fix conflict with MariaDB-client-compat [SME: 13005]
+
 * Sun Apr 20 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-15.sme
 - set innodb_page_size=64k [SME: 12982]
   breaking change, needs backup and restore of mariadb databases
