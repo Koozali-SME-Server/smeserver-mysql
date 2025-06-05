@@ -5,18 +5,18 @@ use esmith::Build::CreateLinks  qw(:all);
 # we add few link fromn old mysql things to mariadb things
 # some are provided by MariaDB-client-compat
 #safe_symlink("/usr/bin/mariadb-dump","root/usr/bin/mysqldump");
-safe_symlink("/usr/bin/mariadb-dumpslow","root/usr/bin/mysqldumpslow");
+#safe_symlink("/usr/bin/mariadb-dumpslow","root/usr/bin/mysqldumpslow");
 #safe_symlink("/usr/bin/mariadb-check","root/usr/bin/mysqlcheck");
 #safe_symlink("/usr/bin/mariadb-admin","root/usr/bin/mysqladmin");
 #safe_symlink("/usr/bin/mariadb-show","root/usr/bin/mysqlshow");
-safe_symlink("/usr/bin/mariadb-upgrade","root/usr/bin/mysql_upgrade");
+#safe_symlink("/usr/bin/mariadb-upgrade","root/usr/bin/mysql_upgrade");
 #safe_symlink("/usr/bin/mariadb","root/usr/bin/mysql");
 #safe_symlink("/usr/bin/mariadb-access","root/usr/bin/mysqlaccess");
 #safe_symlink("/usr/bin/mariadb-binlog","root/usr/bin/mysqlbinlog");
-safe_symlink("/usr/bin/mariadb-convert-table-format","root/usr/bin/mysql_convert_table_format");
+#safe_symlink("/usr/bin/mariadb-convert-table-format","root/usr/bin/mysql_convert_table_format");
 #safe_symlink("/usr/bin/mariadb-find-rows","root/usr/bin/mysql_find_rows");
-safe_symlink("/usr/bin/mariadb-fix-extensions","root/usr/bin/mysql_fix_extensions");
-safe_symlink("/usr/bin/mariadb-install-db","root/usr/bin/mysql_install_db");
+#safe_symlink("/usr/bin/mariadb-fix-extensions","root/usr/bin/mysql_fix_extensions");
+#safe_symlink("/usr/bin/mariadb-install-db","root/usr/bin/mysql_install_db");
 #safe_symlink("/usr/bin/mariadb-embedded","root/usr/bin/mysql_embedded");
 
 #--------------------------------------------------

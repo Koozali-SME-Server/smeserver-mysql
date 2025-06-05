@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 16
+%define release 17
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -37,6 +37,7 @@ Requires: MariaDB-gssapi-server
 #Requires: MariaDB-compat
 Requires: mariadb-common ,mariadb-errmsg,mariadb-server-utils
 Requires: MariaDB-client-compat
+Requires: MariaDB-server-compat
 
 AutoReqProv: no
 
@@ -80,6 +81,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
+* Thu Jun 05 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-17.sme
+- fix conflict with MariaDB-server-compat [SME: 13024]
+
 * Wed May 14 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-16.sme
 - fix conflict with MariaDB-client-compat [SME: 13005]
 
