@@ -5,7 +5,7 @@ event=$1
 # check we run as post-install event or return
 [[ "$event" == "post-install" ]] || exit 0
 # check mariadb is not running or return
-/usr/bin/systemctl is-active mariadb -q && exit 0
+/usr/bin/pgrep  mariadbd && exit 0
 # ONLY delete the mysql data dirictory if it is initial state
 # we assume if only mysql, test, sys and performance_schema this is the case
 validdirs="/var/lib/mysql/mysql/ /var/lib/mysql/performance_schema/ /var/lib/mysql/sys/ /var/lib/mysql/test/"
@@ -17,5 +17,5 @@ done
 # we use find as glob will ignore dot starting filename
 # rm -rf /var/lib/mysql/*
 find /var/lib/mysql -mindepth 1 -maxdepth 1 -print0 | xargs -0 rm -rf
-return 0
+exit 0
 
