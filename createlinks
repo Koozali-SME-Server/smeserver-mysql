@@ -81,13 +81,6 @@ foreach (qw(
     templates2events("$_", $event);
 }
 
-#--------------------------------------------------
-# actions for post-install event
-#--------------------------------------------------
-$event = "post-install";
-
-event_link("mysql-update-innodb-page-size", $event, "03");
-
 safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/mariadb");
 safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/mysql.init");
 safe_symlink("restart", "root/etc/e-smith/events/$event/services2adjust/rsyslog");
@@ -98,5 +91,12 @@ templates2events("/etc/rsyslog.conf", $event);
 # systemd-specific action mandatory for this package-update event
 event_link("systemd-reload", $event, "89");
 event_link("systemd-default", $event, "88");
+
+#--------------------------------------------------
+# actions for post-install event
+#--------------------------------------------------
+$event = "post-install";
+
+event_link("mysql-update-innodb-page-size", $event, "03");
 
 

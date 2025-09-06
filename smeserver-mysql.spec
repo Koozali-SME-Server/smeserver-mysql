@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 18
+%define release 19
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL
@@ -81,6 +81,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
+* Sat Sep 06 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-19.sme
+- fix MULTIPLE_RPM_OWNERS [SME: 13131]
+
 * Mon Jul 21 2025 Trevor Batley <trevor@batley.id.au> 11.0.0-18.sme
 - add fix to allow upgrade of innodb to new pagesize as required by 12982 on install [SME: 13083]
 
