@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 19
+%define release 20
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL2.0
@@ -81,6 +81,9 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
+* Sun Jun 21 2026 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-20.sme
+- rewrite init db condition [SME: 13613]
+
 * Sat Sep 06 2025 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-19.sme
 - fix MULTIPLE_RPM_OWNERS [SME: 13131]
 
