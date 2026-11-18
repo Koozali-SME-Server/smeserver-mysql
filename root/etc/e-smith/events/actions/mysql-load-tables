@@ -8,6 +8,11 @@ then
 fi
 /bin/rm -f /home/e-smith/db/mysql/information_schema.dump
 /bin/rm -f /home/e-smith/db/mysql/performance_schema.dump
+/bin/rm -f /home/e-smith/db/mysql/sys.dump
+/bin/rm -f /home/e-smith/db/mysql/information_schema-failed.dump
+/bin/rm -f /home/e-smith/db/mysql/performance_schema-failed.dump
+/bin/rm -f /home/e-smith/db/mysql/sys-failed.dump
+
 if [ ! -f /var/lib/mysql/mysql/user.frm ]
 then
     for db in $(ls /home/e-smith/db/mysql/*.dump 2> /dev/null | grep -v '/mysql.dump'| grep -v '/mysql.privileges.dump')

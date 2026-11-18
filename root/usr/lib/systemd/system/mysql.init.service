@@ -11,7 +11,7 @@ IgnoreSIGPIPE=no
 KillMode=process
 GuessMainPID=no
 RemainAfterExit=yes
-ExecStart=-/usr/bin/mariadb-upgrade
+ExecStartPost=-/bin/bash -c '/usr/bin/grep -q "^TYPE=VIEW$" /var/lib/mysql/mysql/user.frm 2>/dev/null || /usr/bin/mariadb-upgrade --force'
 ExecStart=/sbin/e-smith/systemd/mysql.init start
 ExecStop=/sbin/e-smith/systemd/mysql.init stop
 SyslogIdentifier=mysql.init

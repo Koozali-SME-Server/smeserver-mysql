@@ -6,7 +6,7 @@
 ( /usr/bin/mysql_filter_user_table /home/e-smith/db/mysql/mysql.dump |sed -e 's/ENGINE=MyISAM/ENGINE=Aria/';
   [ -f /home/e-smith/db/mysql/mysql.privileges.dump ] && cat /home/e-smith/db/mysql/mysql.privileges.dump;
   cat /var/lib/mysql.private/set.password ) | mariadb || exit 1
-/usr/bin/mariadb-upgrade
+/usr/bin/mariadb-upgrade --force
 /bin/rm /run/mariadb/mariadb.pid
 /usr/bin/systemctl restart mariadb.service
 for i in $(seq 1 20);

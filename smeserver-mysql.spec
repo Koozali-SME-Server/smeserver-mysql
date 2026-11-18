@@ -2,7 +2,7 @@ Summary: Koozali SME Server specific mysql configuration and templates.
 %define name smeserver-mysql
 Name: %{name}
 %define version 11.0.0
-%define release 20
+%define release 21
 Version: %{version}
 Release: %{release}%{?dist}
 License: GPL2.0
@@ -81,6 +81,10 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 
 %changelog
+* Tue Nov 17 2026 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-21.sme
+- selective mariadb-upgrade usage [SME: 13831]
+- exclude sys db from dump [SME: 13840]
+
 * Sun Jun 21 2026 Jean-Philippe Pialasse <jpp@koozali.org> 11.0.0-20.sme
 - rewrite init db condition [SME: 13613]
 
